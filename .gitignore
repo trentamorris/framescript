@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Production/Build
+dist/
+out/
+build/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp1
+
+# OS Files
+.DS_Store
+Thumbs.db
