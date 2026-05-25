@@ -20,13 +20,3 @@ export interface IExpr {
     evaluateWindow?(partitionRows: any[], partitionIndices: number[], currentIndex: number): any;
 }
 export type ExprConstructor = new (...args: any[]) => IExpr;
-export type JoinType = "inner" | "left" | "outer" | "right"
-export type LimitPosition = "start" | "end";
-
-export type ConcatHow = "vertical" | "horizontal" | "diagonal";
-export interface ConcatOptions {
-    how?: ConcatHow;
-    //rechunk?: boolean;
-    //strict?: boolean;
-    //parallel?: boolean;
-}
