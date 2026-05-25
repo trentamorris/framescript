@@ -1,11 +1,11 @@
 import { UnsignedIntegerType, DataType } from "../DataType";
-import { coerceBigInt } from "../../utils";
+import { toValidBigInt } from "../../utils";
 
 export class UInt64Type extends UnsignedIntegerType {
     readonly name = "UInt64";
 
     coerce(val: any): bigint | null {
-        return coerceBigInt(val, "UInt64");
+        return toValidBigInt(val, "UInt64");
     }
 
     equals(other: DataType): boolean {

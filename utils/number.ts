@@ -67,14 +67,13 @@ export const INT_RANGES = {
 
 export type IntRangeType = keyof typeof INT_RANGES;
 
-export function coerceInt(
+export function toValidInt(
     v: unknown,
-    range?: { min: number; max: number } | IntRangeType
+    range: { min: number; max: number } | IntRangeType = "Int32"
 ): number | null {
     const num = toValidNumber(v);
     if (num === null) return null;
     const truncated = Math.trunc(num);
-    if (!range) return truncated;
 
     const limits = typeof range === "string" ? INT_RANGES[range] : range;
     return clamp({ val: truncated, min: limits.min, max: limits.max });
@@ -87,9 +86,9 @@ export const BIGINT_RANGES = {
 
 export type BigIntRangeType = keyof typeof BIGINT_RANGES;
 
-export function coerceBigInt(
+export function toValidBigInt(
     v: unknown,
-    range: { min: bigint; max: bigint } | BigIntRangeType
+    range: { min: bigint; max: bigint } | BigIntRangeType = "Int64"
 ): bigint | null {
     if (v == null) return null;
     try {

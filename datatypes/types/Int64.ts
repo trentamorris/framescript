@@ -1,11 +1,11 @@
 import { SignedIntegerType, DataType } from "../DataType";
-import { coerceBigInt } from "../../utils";
+import { toValidBigInt } from "../../utils";
 
 export class Int64Type extends SignedIntegerType {
     readonly name = "Int64";
 
     coerce(val: any): bigint | null {
-        return coerceBigInt(val, "Int64");
+        return toValidBigInt(val);
     }
 
     equals(other: DataType): boolean {

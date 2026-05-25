@@ -1,11 +1,11 @@
 import { SignedIntegerType, DataType } from "../DataType";
-import { coerceInt } from "../../utils";
+import { toValidInt } from "../../utils";
 
 export class Int16Type extends SignedIntegerType {
     readonly name = "Int16";
 
     coerce(val: any): number | null {
-        return coerceInt(val, "Int16");
+        return toValidInt(val, "Int16");
     }
 
     equals(other: DataType): boolean {

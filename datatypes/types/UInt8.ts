@@ -1,11 +1,11 @@
 import { UnsignedIntegerType, DataType } from "../DataType";
-import { coerceInt } from "../../utils";
+import { toValidInt } from "../../utils";
 
 export class UInt8Type extends UnsignedIntegerType {
     readonly name = "UInt8";
 
     coerce(val: any): number | null {
-        return coerceInt(val, "UInt8");
+        return toValidInt(val, "UInt8");
     }
 
     equals(other: DataType): boolean {
