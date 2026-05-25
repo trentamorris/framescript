@@ -65,15 +65,18 @@ export const INT_RANGES = {
     UInt32: { min: 0, max: 4294967295 }
 } as const;
 
+export type IntRangeType = keyof typeof INT_RANGES;
+
 export function coerceInt(
     v: unknown,
-    range?: { min: number; max: number }
+    range?: { min: number; max: number } | IntRangeType
 ): number | null {
     const num = toValidNumber(v);
     if (num === null) return null;
     const truncated = Math.trunc(num);
     if (range) {
-        return clamp({ val: truncated, min: range.min, max: range.max });
+        const limits = typeof range === "string" ? INT_RANGES[range] : range;
+        return clamp({ val: truncated, min: limits.min, max: limits.max });
     }
     return truncated;
 }
@@ -83,9 +86,11 @@ export const BIGINT_RANGES = {
     UInt64: { min: 0n, max: 18446744073709551615n }
 } as const;
 
+export type BigIntRangeType = keyof typeof BIGINT_RANGES;
+
 export function coerceBigInt(
     v: unknown,
-    range: { min: bigint; max: bigint }
+    range: { min: bigint; max: bigint } | BigIntRangeType
 ): bigint | null {
     if (v == null) return null;
     try {
@@ -106,7 +111,8 @@ export function coerceBigInt(
             const cleanStr = dotIdx !== -1 ? str.slice(0, dotIdx) : str;
             bigintVal = BigInt(cleanStr);
         }
-        return clamp({ val: bigintVal, min: range.min, max: range.max });
+        const limits = typeof range === "string" ? BIGINT_RANGES[range] : range;
+        return clamp({ val: bigintVal, min: limits.min, max: limits.max });
     } catch {
         return null;
     }

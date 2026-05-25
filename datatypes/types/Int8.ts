@@ -1,11 +1,11 @@
 import { SignedIntegerType, DataType } from "../DataType";
-import { coerceInt, INT_RANGES } from "../../utils";
+import { coerceInt } from "../../utils";
 
 export class Int8Type extends SignedIntegerType {
     readonly name = "Int8";
 
     coerce(val: any): number | null {
-        return coerceInt(val, INT_RANGES.Int8);
+        return coerceInt(val, "Int8");
     }
 
     equals(other: DataType): boolean {

@@ -5,7 +5,7 @@ export class Int32Type extends SignedIntegerType {
     readonly name = "Int32";
     
     coerce(val: any): number | null {
-        return coerceInt(val);
+        return coerceInt(val, "Int32");
     }
     
     equals(other: DataType): boolean {
