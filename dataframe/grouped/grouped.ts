@@ -1,7 +1,7 @@
-import { DataFrame, getRowFromColumns, inferColumnType } from "./dataframe"
-import { resolveColumnSelectors } from "./columnExpressions"
-import { DataType } from "./datatypes"
-import type { IExpr } from "./types"
+import { DataFrame, getRowFromColumns, inferColumnType } from ".."
+import { resolveColumnSelectors } from "../../columnExpressions"
+import { DataType } from "../../datatypes"
+import type { IExpr } from "../../types"
 
 export class GroupedData<T, K extends keyof T> {
     private groups: Map<string, number[]>
