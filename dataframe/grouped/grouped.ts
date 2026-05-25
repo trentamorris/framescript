@@ -1,4 +1,6 @@
-import { DataFrame, getRowFromColumns, inferColumnType, GroupMap } from ".."
+import { DataFrame } from "../dataframe"
+import { getRowFromColumns, inferColumnType } from "../utils"
+import type { GroupMap } from "../types"
 import { resolveColumnSelectors } from "../../columnExpressions"
 import { DataType } from "../../datatypes"
 import type { IExpr } from "../../types"

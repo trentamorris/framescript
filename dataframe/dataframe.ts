@@ -1,5 +1,5 @@
 import { ColumnExpr, AllColumnsExpr, resolveColumnSelectors } from "../columnExpressions"
-import { GroupedData } from "./grouped"
+import { GroupedData } from "./grouped/grouped"
 import type { IExpr } from "../types"
 import type { JoinType, LimitPosition, ConcatOptions, GroupMap } from "./types"
 import { DataType, DataTypeRegistry } from "../datatypes"
