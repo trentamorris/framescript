@@ -21,11 +21,16 @@ export function clamp<T extends number | bigint>(opts: { val: T; min: T; max: T 
 
 export type FloatPrecision = "Float32" | "Float64";
 
+export const FLOAT_RANGES = {
+    Float32: { min: -3.4028234663852886e+38, max: 3.4028234663852886e+38 },
+    Float64: { min: -Number.MAX_VALUE, max: Number.MAX_VALUE }
+} as const;
+
 export function isValidFloat(v: unknown, precision?: FloatPrecision): boolean {
     if (!isValidNumber(v)) return false;
-    if (precision === "Float32") {
-        const f32Max = 3.4028234663852886e+38;
-        return v >= -f32Max && v <= f32Max;
+    if (precision) {
+        const limits = FLOAT_RANGES[precision];
+        return v >= limits.min && v <= limits.max;
     }
     return true;
 }
