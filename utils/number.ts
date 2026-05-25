@@ -1,3 +1,5 @@
+const NUMERIC_CLEAN_REGEX = /[,\s_]/g;
+
 export function isValidNumber(v: any): v is number {
     return typeof v === "number" && !Number.isNaN(v) && Number.isFinite(v);
 }
@@ -19,10 +21,7 @@ export function toValidNumber(
         return Number.isNaN(t) ? null : t;
     }
 
-    let raw = typeof v === "number" ? v : String(v).trim();
-    if (typeof raw === "string") {
-        raw = raw.replace(/[,\s_]/g, "");
-    }
+    const raw = typeof v === "number" ? v : String(v).trim().replace(NUMERIC_CLEAN_REGEX, "");
 
     let n = Number(raw);
     if (!isValidNumber(n)) return null;
@@ -97,7 +96,7 @@ export function toValidBigInt(
         bigintVal = v;
     } else if (typeof v === "string") {
         try {
-            const str = v.trim().replace(/[,\s_]/g, "");
+            const str = v.trim().replace(NUMERIC_CLEAN_REGEX, "");
             const dotIdx = str.indexOf(".");
             const cleanStr = dotIdx !== -1 ? str.slice(0, dotIdx) : str;
             bigintVal = BigInt(cleanStr);
