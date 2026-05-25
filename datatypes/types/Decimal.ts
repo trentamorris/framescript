@@ -1,9 +1,8 @@
-import { DataType } from "./DataType";
+import { NumericDataType, DataType } from "../DataType";
+import { toValidNumber } from "../../utils";
 
-export class DecimalType extends DataType {
+export class DecimalType extends NumericDataType {
     readonly name: string;
-
-    override get isNumeric(): boolean { return true; }
 
     constructor(public readonly precision?: number, public readonly scale?: number) {
         super();
@@ -13,11 +12,9 @@ export class DecimalType extends DataType {
     }
 
     coerce(val: any): number | null {
-        if (val == null) return null;
-        const num = Number(val);
-        if (isNaN(num)) return null;
+        const num = toValidNumber(val);
+        if (num === null) return null;
         if (this.scale !== undefined) {
-            // Round/coerce value to target scale
             const multiplier = Math.pow(10, this.scale);
             return Math.round(num * multiplier) / multiplier;
         }

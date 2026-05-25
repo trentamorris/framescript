@@ -1,5 +1,5 @@
-import { DataFrame } from "../dataframe";
-import { $tbl } from "../api";
+import { DataFrame } from "../../dataframe";
+import { $tbl } from "../../api";
 
 console.log("=========================================");
 console.log("STARTING POLARS DATATYPES TESTS...");
@@ -34,6 +34,23 @@ if (!tDate.isTemporal) {
 }
 if (!tList.isNested) {
     throw new Error("List isNested metadata classification failed");
+}
+
+// Check new getters
+if (!$tbl.DataType.Null.isNull) {
+    throw new Error("Null isNull check failed");
+}
+if (!$tbl.DataType.Object.isObject) {
+    throw new Error("Object isObject check failed");
+}
+if (!$tbl.DataType.Boolean.isBoolean) {
+    throw new Error("Boolean isBoolean check failed");
+}
+if (!$tbl.DataType.Utf8.isString || !$tbl.DataType.Utf8.isUtf8) {
+    throw new Error("Utf8 isString/isUtf8 check failed");
+}
+if (!$tbl.DataType.Binary.isBinary) {
+    throw new Error("Binary isBinary check failed");
 }
 
 // 2. Test Intake Coercion in DataFrame

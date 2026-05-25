@@ -1,9 +1,8 @@
-import { DataType } from "./DataType";
+import { TemporalDataType, DataType } from "../DataType";
+import { toValidDate } from "../../utils";
 
-export class TimeType extends DataType {
+export class TimeType extends TemporalDataType {
     readonly name = "Time";
-
-    override get isTemporal(): boolean { return true; }
 
     coerce(val: any): string | null {
         if (val == null) return null;
@@ -13,13 +12,8 @@ export class TimeType extends DataType {
             if (match) return val;
         }
         
-        let d: Date;
-        if (val instanceof Date) {
-            d = val;
-        } else {
-            d = new Date(val);
-        }
-        if (isNaN(d.getTime())) return null;
+        const d = toValidDate(val);
+        if (!d) return null;
 
         const h = String(d.getUTCHours()).padStart(2, "0");
         const m = String(d.getUTCMinutes()).padStart(2, "0");

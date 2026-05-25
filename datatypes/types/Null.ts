@@ -1,7 +1,9 @@
-import { DataType } from "./DataType";
+import { DataType } from "../DataType";
 
 export class NullType extends DataType {
     readonly name = "Null";
+
+    override get isNull(): boolean { return true; }
 
     coerce(val: any): null {
         return null;

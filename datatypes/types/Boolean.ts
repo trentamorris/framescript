@@ -1,7 +1,9 @@
-import { DataType } from "./DataType";
+import { DataType } from "../DataType";
 
 export class BooleanType extends DataType {
     readonly name = "Boolean";
+
+    override get isBoolean(): boolean { return true; }
     
     coerce(val: any): boolean | null {
         if (val == null) return null;

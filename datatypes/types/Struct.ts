@@ -1,9 +1,7 @@
-import { DataType } from "./DataType";
+import { NestedDataType, DataType } from "../DataType";
 
-export class StructType extends DataType {
+export class StructType extends NestedDataType {
     readonly name = "Struct";
-
-    override get isNested(): boolean { return true; }
     
     constructor(public readonly fields: Record<string, DataType>) {
         super();

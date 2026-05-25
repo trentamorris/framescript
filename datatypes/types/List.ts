@@ -1,9 +1,7 @@
-import { DataType } from "./DataType";
+import { NestedDataType, DataType } from "../DataType";
 
-export class ListType extends DataType {
+export class ListType extends NestedDataType {
     readonly name = "List";
-
-    override get isNested(): boolean { return true; }
     
     constructor(public readonly innerType: DataType) {
         super();
