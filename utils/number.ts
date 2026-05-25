@@ -74,11 +74,10 @@ export function coerceInt(
     const num = toValidNumber(v);
     if (num === null) return null;
     const truncated = Math.trunc(num);
-    if (range) {
-        const limits = typeof range === "string" ? INT_RANGES[range] : range;
-        return clamp({ val: truncated, min: limits.min, max: limits.max });
-    }
-    return truncated;
+    if (!range) return truncated;
+
+    const limits = typeof range === "string" ? INT_RANGES[range] : range;
+    return clamp({ val: truncated, min: limits.min, max: limits.max });
 }
 
 export const BIGINT_RANGES = {
