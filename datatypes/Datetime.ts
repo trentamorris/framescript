@@ -2,6 +2,8 @@ import { DataType } from "./DataType";
 
 export class DatetimeType extends DataType {
     readonly name = "Datetime";
+
+    override get isTemporal(): boolean { return true; }
     
     coerce(val: any): Date | null {
         if (val == null) return null;

@@ -2,6 +2,8 @@ import { DataType } from "./DataType";
 
 export class ListType extends DataType {
     readonly name = "List";
+
+    override get isNested(): boolean { return true; }
     
     constructor(public readonly innerType: DataType) {
         super();

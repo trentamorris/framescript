@@ -2,6 +2,8 @@ import { DataType } from "./DataType";
 
 export class StructType extends DataType {
     readonly name = "Struct";
+
+    override get isNested(): boolean { return true; }
     
     constructor(public readonly fields: Record<string, DataType>) {
         super();
