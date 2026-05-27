@@ -1,7 +1,7 @@
 import { isArray } from "./types";
 import { toValidNumber } from "./number";
 
-export function getListSumAndCount(arr: unknown): {
+export function getListStats(arr: unknown): {
     sum: number | null;
     count: number;
     min: any;
