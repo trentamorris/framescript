@@ -138,8 +138,8 @@ export function isValidDate(v: unknown): v is string | number | bigint | Date {
     return false;
 }
 
-export function isValidDateObj(d: Date): boolean {
-    return !Number.isNaN(d.getTime());
+export function isValidDateObj(d: unknown): d is Date {
+    return d instanceof Date && !Number.isNaN(d.getTime());
 }
 
 export function normalizeEpochToMs(n: number): number {

@@ -32,7 +32,7 @@ export function isScalar(v: unknown): v is string | number | boolean | bigint | 
         typeof v === "number" ||
         typeof v === "boolean" ||
         typeof v === "bigint" ||
-        (v instanceof Date && isValidDateObj(v)) ||
+        isValidDateObj(v) ||
         v instanceof Uint8Array
     );
 }
@@ -73,7 +73,7 @@ export function isArrayOfType(
     return list.every((v) => {
         if (v == null) return true;
         if (type === "date") {
-            return v instanceof Date && isValidDateObj(v);
+            return isValidDateObj(v);
         }
         if (type === "object") {
             return isObj(v);
