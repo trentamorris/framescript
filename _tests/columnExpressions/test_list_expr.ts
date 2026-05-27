@@ -11,14 +11,18 @@ const data = [
         numbers: [3, 1, 4, 1, 5, 9, 2, null, 6, 5],
         tags: ["apple", "banana", "apple", "cherry"],
         not_a_list: 42,
-        empty_list: []
+        empty_list: [],
+        typed_array: new Int32Array([10, 20, 30]),
+        string_nums: ["3", "1", "4"]
     },
     {
         id: 2,
         numbers: [10, -5, 20, 0],
         tags: ["js", "ts"],
         not_a_list: null,
-        empty_list: null
+        empty_list: null,
+        typed_array: new Float64Array([1.5, 2.5]),
+        string_nums: ["10"]
     }
 ];
 
@@ -66,7 +70,13 @@ try {
 
         // count_matches
         $tbl.col("tags").list.count_matches("apple").alias("apple_count"),
-        $tbl.col("tags").list.count_matches("pear").alias("pear_count")
+        $tbl.col("tags").list.count_matches("pear").alias("pear_count"),
+
+        // Robustness features: TypedArray & String Coercion
+        $tbl.col("typed_array").list.lengths().alias("typed_len"),
+        $tbl.col("typed_array").list.sum().alias("typed_sum"),
+        $tbl.col("string_nums").list.sum().alias("coerced_sum"),
+        $tbl.col("string_nums").list.mean().alias("coerced_mean")
     ]).collect() as any[];
 
     console.log("Coerced Expr.list results:");
@@ -131,6 +141,12 @@ try {
     if (r0.apple_count !== 2) throw new Error(`Expected apple_count 2, got ${r0.apple_count}`);
     if (r0.pear_count !== 0) throw new Error(`Expected pear_count 0, got ${r0.pear_count}`);
 
+    // Robustness assertions Row 0
+    if (r0.typed_len !== 3) throw new Error(`Expected r0.typed_len 3, got ${r0.typed_len}`);
+    if (r0.typed_sum !== 60) throw new Error(`Expected r0.typed_sum 60, got ${r0.typed_sum}`);
+    if (r0.coerced_sum !== 8) throw new Error(`Expected r0.coerced_sum 8, got ${r0.coerced_sum}`);
+    if (Math.abs(r0.coerced_mean - 8 / 3) > 1e-6) throw new Error(`Expected r0.coerced_mean 2.6666, got ${r0.coerced_mean}`);
+
     // Assert Row 1
     const r1 = projected[1];
     if (r1.len_nums !== 4) throw new Error(`Expected len_nums 4, got ${r1.len_nums}`);
@@ -143,9 +159,15 @@ try {
     if (r1.mean_nums !== 6.25) throw new Error(`Expected mean_nums 6.25, got ${r1.mean_nums}`);
 
     if (r1.get_idx_2 !== 20) throw new Error(`Expected get_idx_2 20, got ${r1.get_idx_2}`);
-    if (r1.get_idx_neg_2 !== 20) throw new Error(`Expected get_idx_neg_2 20, got ${r1.get_idx_neg_2}`); // -2 index of [10, -5, 20, 0] is 20
+    if (r1.get_idx_neg_2 !== 20) throw new Error(`Expected get_idx_neg_2 20, got ${r1.get_idx_neg_2}`);
     if (r1.first_tag !== "js") throw new Error(`Expected first_tag 'js', got ${r1.first_tag}`);
     if (r1.last_tag !== "ts") throw new Error(`Expected last_tag 'ts', got ${r1.last_tag}`);
+
+    // Robustness assertions Row 1
+    if (r1.typed_len !== 2) throw new Error(`Expected r1.typed_len 2, got ${r1.typed_len}`);
+    if (r1.typed_sum !== 4) throw new Error(`Expected r1.typed_sum 4, got ${r1.typed_sum}`);
+    if (r1.coerced_sum !== 10) throw new Error(`Expected r1.coerced_sum 10, got ${r1.coerced_sum}`);
+    if (r1.coerced_mean !== 10) throw new Error(`Expected r1.coerced_mean 10, got ${r1.coerced_mean}`);
 
     console.log("\n🎉 ALL Expr.list COLUMN EXPRESSION TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
