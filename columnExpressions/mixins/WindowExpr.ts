@@ -24,10 +24,116 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return this.partitionBy !== null || (this as any).evaluateWindow !== undefined || (this as any).aggFn !== null;
         }
 
-        over(columns: string | IExpr | (string | IExpr)[]) {
+        cum_count(reverse: boolean = false) {
             const newInst = derive(this, (v) => v);
-            const cols = Array.isArray(columns) ? columns : [columns];
-            newInst.partitionBy = cols;
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                let count = 0;
+                const start = reverse ? currentIndex : 0;
+                const end = reverse ? partitionRows.length - 1 : currentIndex;
+                for (let i = start; i <= end; i++) {
+                    const val = this.evaluatePrePartition(partitionRows[i]);
+                    if (val != null) count++;
+                }
+                return this.evaluatePostPartition(count, partitionRows[currentIndex]);
+            };
+            return newInst;
+        }
+
+        cum_max(reverse: boolean = false) {
+            const newInst = derive(this, (v) => v);
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                let maxVal = null;
+                const start = reverse ? currentIndex : 0;
+                const end = reverse ? partitionRows.length - 1 : currentIndex;
+                for (let i = start; i <= end; i++) {
+                    const val = this.evaluatePrePartition(partitionRows[i]);
+                    if (val != null) {
+                        if (maxVal === null || val > maxVal) {
+                            maxVal = val;
+                        }
+                    }
+                }
+                return this.evaluatePostPartition(maxVal, partitionRows[currentIndex]);
+            };
+            return newInst;
+        }
+
+        cum_min(reverse: boolean = false) {
+            const newInst = derive(this, (v) => v);
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                let minVal = null;
+                const start = reverse ? currentIndex : 0;
+                const end = reverse ? partitionRows.length - 1 : currentIndex;
+                for (let i = start; i <= end; i++) {
+                    const val = this.evaluatePrePartition(partitionRows[i]);
+                    if (val != null) {
+                        if (minVal === null || val < minVal) {
+                            minVal = val;
+                        }
+                    }
+                }
+                return this.evaluatePostPartition(minVal, partitionRows[currentIndex]);
+            };
+            return newInst;
+        }
+
+        cum_prod(reverse: boolean = false) {
+            const newInst = derive(this, (v) => v);
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                let prod = 1;
+                let hasValid = false;
+                const start = reverse ? currentIndex : 0;
+                const end = reverse ? partitionRows.length - 1 : currentIndex;
+                for (let i = start; i <= end; i++) {
+                    const val = this.evaluatePrePartition(partitionRows[i]);
+                    if (val != null) {
+                        prod *= val;
+                        hasValid = true;
+                    }
+                }
+                const finalVal = hasValid ? prod : null;
+                return this.evaluatePostPartition(finalVal, partitionRows[currentIndex]);
+            };
+            return newInst;
+        }
+
+        cum_sum(reverse: boolean = false) {
+            const newInst = derive(this, (v) => v);
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                let sum = 0;
+                const start = reverse ? currentIndex : 0;
+                const end = reverse ? partitionRows.length - 1 : currentIndex;
+                for (let i = start; i <= end; i++) {
+                    const val = this.evaluatePrePartition(partitionRows[i]);
+                    if (val != null) sum += val;
+                }
+                return this.evaluatePostPartition(sum, partitionRows[currentIndex]);
+            };
+            return newInst;
+        }
+
+        dense_rank() {
+            const newInst = derive(this, (v) => v);
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                const vals = partitionRows.map(r => this.evaluatePrePartition(r));
+                const sortedUnique = Array.from(new Set(vals)).sort((a, b) => a - b);
+                const valueToRank = new Map(sortedUnique.map((v, idx) => [v, idx + 1]));
+                const currentVal = this.evaluatePrePartition(partitionRows[currentIndex]);
+                const rankVal = valueToRank.get(currentVal) ?? null;
+                return this.evaluatePostPartition(rankVal, partitionRows[currentIndex]);
+            };
             return newInst;
         }
 
@@ -61,15 +167,10 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return newInst;
         }
 
-        row_number() {
+        over(columns: string | IExpr | (string | IExpr)[]) {
             const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                const val = currentIndex + 1;
-                return this.evaluatePostPartition(val, partitionRows[currentIndex]);
-            };
-            newInst.outputName = "row_number";
+            const cols = Array.isArray(columns) ? columns : [columns];
+            newInst.partitionBy = cols;
             return newInst;
         }
 
@@ -94,123 +195,10 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return newInst;
         }
 
-        dense_rank() {
-            const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                const vals = partitionRows.map(r => this.evaluatePrePartition(r));
-                const sortedUnique = Array.from(new Set(vals)).sort((a, b) => a - b);
-                const valueToRank = new Map(sortedUnique.map((v, idx) => [v, idx + 1]));
-                const currentVal = this.evaluatePrePartition(partitionRows[currentIndex]);
-                const rankVal = valueToRank.get(currentVal) ?? null;
-                return this.evaluatePostPartition(rankVal, partitionRows[currentIndex]);
-            };
-            return newInst;
-        }
-
-        cum_sum(reverse: boolean = false) {
-            const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                let sum = 0;
-                const start = reverse ? currentIndex : 0;
-                const end = reverse ? partitionRows.length - 1 : currentIndex;
-                for (let i = start; i <= end; i++) {
-                    const val = this.evaluatePrePartition(partitionRows[i]);
-                    if (val != null) sum += val;
-                }
-                return this.evaluatePostPartition(sum, partitionRows[currentIndex]);
-            };
-            return newInst;
-        }
-
-        cum_prod(reverse: boolean = false) {
-            const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                let prod = 1;
-                let hasValid = false;
-                const start = reverse ? currentIndex : 0;
-                const end = reverse ? partitionRows.length - 1 : currentIndex;
-                for (let i = start; i <= end; i++) {
-                    const val = this.evaluatePrePartition(partitionRows[i]);
-                    if (val != null) {
-                        prod *= val;
-                        hasValid = true;
-                    }
-                }
-                const finalVal = hasValid ? prod : null;
-                return this.evaluatePostPartition(finalVal, partitionRows[currentIndex]);
-            };
-            return newInst;
-        }
-
-        cum_min(reverse: boolean = false) {
-            const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                let minVal = null;
-                const start = reverse ? currentIndex : 0;
-                const end = reverse ? partitionRows.length - 1 : currentIndex;
-                for (let i = start; i <= end; i++) {
-                    const val = this.evaluatePrePartition(partitionRows[i]);
-                    if (val != null) {
-                        if (minVal === null || val < minVal) {
-                            minVal = val;
-                        }
-                    }
-                }
-                return this.evaluatePostPartition(minVal, partitionRows[currentIndex]);
-            };
-            return newInst;
-        }
-
-        cum_max(reverse: boolean = false) {
-            const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                let maxVal = null;
-                const start = reverse ? currentIndex : 0;
-                const end = reverse ? partitionRows.length - 1 : currentIndex;
-                for (let i = start; i <= end; i++) {
-                    const val = this.evaluatePrePartition(partitionRows[i]);
-                    if (val != null) {
-                        if (maxVal === null || val > maxVal) {
-                            maxVal = val;
-                        }
-                    }
-                }
-                return this.evaluatePostPartition(maxVal, partitionRows[currentIndex]);
-            };
-            return newInst;
-        }
-
-        cum_count(reverse: boolean = false) {
-            const newInst = derive(this, (v) => v);
-            newInst.partitionOpsIndex = this.ops.length;
-            newInst.groupingOpsIndex = this.ops.length;
-            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
-                let count = 0;
-                const start = reverse ? currentIndex : 0;
-                const end = reverse ? partitionRows.length - 1 : currentIndex;
-                for (let i = start; i <= end; i++) {
-                    const val = this.evaluatePrePartition(partitionRows[i]);
-                    if (val != null) count++;
-                }
-                return this.evaluatePostPartition(count, partitionRows[currentIndex]);
-            };
-            return newInst;
-        }
-
-        rolling_sum(windowSize: number) {
+        rolling_max(windowSize: number) {
             return this._rolling(windowSize, v => {
                 const f = v.filter(x => x != null);
-                return f.length ? f.reduce((a, b) => a + b, 0) : null;
+                return f.length ? f.reduce((a, b) => (a > b ? a : b)) : null;
             });
         }
 
@@ -218,20 +206,6 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return this._rolling(windowSize, v => {
                 const f = v.filter(x => x != null);
                 return f.length ? f.reduce((a, b) => a + b, 0) / f.length : null;
-            });
-        }
-
-        rolling_min(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                const f = v.filter(x => x != null);
-                return f.length ? f.reduce((a, b) => (a < b ? a : b)) : null;
-            });
-        }
-
-        rolling_max(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                const f = v.filter(x => x != null);
-                return f.length ? f.reduce((a, b) => (a > b ? a : b)) : null;
             });
         }
 
@@ -244,13 +218,10 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             });
         }
 
-        rolling_std(windowSize: number) {
+        rolling_min(windowSize: number) {
             return this._rolling(windowSize, v => {
                 const f = v.filter(x => x != null);
-                if (f.length < 2) return 0;
-                const mean = f.reduce((a, b) => a + b, 0) / f.length;
-                const variance = f.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (f.length - 1);
-                return Math.sqrt(variance);
+                return f.length ? f.reduce((a, b) => (a < b ? a : b)) : null;
             });
         }
 
@@ -295,6 +266,35 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                 const rankVal = valueToRank.get(currentVal) ?? null;
                 return this.evaluatePostPartition(rankVal, partitionRows[currentIndex]);
             };
+            return newInst;
+        }
+
+        rolling_std(windowSize: number) {
+            return this._rolling(windowSize, v => {
+                const f = v.filter(x => x != null);
+                if (f.length < 2) return 0;
+                const mean = f.reduce((a, b) => a + b, 0) / f.length;
+                const variance = f.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (f.length - 1);
+                return Math.sqrt(variance);
+            });
+        }
+
+        rolling_sum(windowSize: number) {
+            return this._rolling(windowSize, v => {
+                const f = v.filter(x => x != null);
+                return f.length ? f.reduce((a, b) => a + b, 0) : null;
+            });
+        }
+
+        row_number() {
+            const newInst = derive(this, (v) => v);
+            newInst.partitionOpsIndex = this.ops.length;
+            newInst.groupingOpsIndex = this.ops.length;
+            newInst.evaluateWindow = function(this: IExpr, partitionRows: any[], partitionIndices: number[], currentIndex: number) {
+                const val = currentIndex + 1;
+                return this.evaluatePostPartition(val, partitionRows[currentIndex]);
+            };
+            newInst.outputName = "row_number";
             return newInst;
         }
     }

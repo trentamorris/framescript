@@ -11,6 +11,9 @@ export const LogicalExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                 return true;
             }); 
         }
+        not() {
+            return derive(this, (v) => (v == null ? null : !v));
+        }
         or(other: IExpr) { 
             return derive(this, (v, row) => {
                 const w = other.evaluate(row);
@@ -25,9 +28,6 @@ export const LogicalExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                 if (v == null || w == null) return null;
                 return Number(!!v) ^ Number(!!w);
             });
-        }
-        not () {
-            return derive(this, (v) => (v == null ? null : !v));
         }
     }
 }

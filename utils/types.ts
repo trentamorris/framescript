@@ -4,36 +4,6 @@ export function isArray(v: unknown): v is unknown[] | ArrayBufferView {
     return Array.isArray(v) || (ArrayBuffer.isView(v) && !(v instanceof DataView));
 }
 
-export type ArrayItemType = "string" | "number" | "boolean" | "bigint" | "object" | "date" | ((v: unknown) => boolean);
-export type ArrayCheckMode = "every" | "some";
-
-export function isArrayOfType(
-    arr: unknown,
-    type: ArrayItemType,
-    options: { mode?: ArrayCheckMode; includeNulls?: boolean } = {}
-): boolean {
-    if (!isArray(arr)) return false;
-    const list = Array.from(arr as any);
-    const mode = options?.mode ?? "every";
-
-    const check = (v: unknown) => {
-        if (v == null && options?.includeNulls) {
-            return true;
-        }
-        if (typeof type === "function") {
-            return type(v);
-        }
-        if (type === "date") {
-            return isValidDateObj(v);
-        }
-        if (type === "object") {
-            return isObj(v);
-        }
-        return typeof v === type;
-    };
-
-    return mode === "every" ? list.every(check) : list.some(check);
-}
 
 export function isNonEmptyArray<T = unknown>(arr: unknown): arr is T[] | ArrayBufferView {
     return isArray(arr) && (arr as any).length > 0;

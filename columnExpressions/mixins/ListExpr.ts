@@ -11,57 +11,27 @@ class ListExprNamespace {
         }));
     }
 
-    lengths() {
-        return this._deriveList((arr) => (arr as any).length);
-    }
-
-    len() {
-        return this.lengths();
-    }
-
-    max() {
-        return this._deriveList((arr) => getListStats(arr).max);
-    }
-
-    min() {
-        return this._deriveList((arr) => getListStats(arr).min);
-    }
-
-    sum() {
-        return this._deriveList((arr) => getListStats(arr).sum);
-    }
-
-    mean() {
+    contains(item: any) {
         return this._deriveList((arr) => {
-            const { sum, count } = getListStats(arr);
-            return sum !== null && count > 0 ? sum / count : null;
+            return Array.from(arr as any).includes(item);
         });
     }
 
-    median() {
-        return this._deriveList(getListMedian);
-    }
-
-    mode() {
-        return this._deriveList(getListMode);
-    }
-
-    get(index: number, null_on_oob: boolean = true) {
+    count_matches(item: any) {
         return this._deriveList((arr) => {
-            const val = (arr as any).at(index);
-            if (val === undefined && !null_on_oob) {
-                throw new Error(`Index ${index} is out of bounds for list of length ${(arr as any).length}`);
+            const list = Array.from(arr as any);
+            let count = 0;
+            for (const val of list) {
+                if (val === item) {
+                    count++;
+                }
             }
-            return val ?? null;
+            return count;
         });
     }
 
     first(null_on_oob: boolean = true) {
         return this.get(0, null_on_oob);
-    }
-
-    last(null_on_oob: boolean = true) {
-        return this.get(-1, null_on_oob);
     }
 
     gather(indices: number | number[], null_on_oob: boolean = true) {
@@ -95,9 +65,13 @@ class ListExprNamespace {
         });
     }
 
-    contains(item: any) {
+    get(index: number, null_on_oob: boolean = true) {
         return this._deriveList((arr) => {
-            return Array.from(arr as any).includes(item);
+            const val = (arr as any).at(index);
+            if (val === undefined && !null_on_oob) {
+                throw new Error(`Index ${index} is out of bounds for list of length ${(arr as any).length}`);
+            }
+            return val ?? null;
         });
     }
 
@@ -107,19 +81,44 @@ class ListExprNamespace {
         });
     }
 
-    sort(descending: boolean = false) {
-        return this._deriveList((arr) => sortList(arr, descending));
+    last(null_on_oob: boolean = true) {
+        return this.get(-1, null_on_oob);
+    }
+
+    len() {
+        return this.lengths();
+    }
+
+    lengths() {
+        return this._deriveList((arr) => (arr as any).length);
+    }
+
+    max() {
+        return this._deriveList((arr) => getListStats(arr).max);
+    }
+
+    mean() {
+        return this._deriveList((arr) => {
+            const { sum, count } = getListStats(arr);
+            return sum !== null && count > 0 ? sum / count : null;
+        });
+    }
+
+    median() {
+        return this._deriveList(getListMedian);
+    }
+
+    min() {
+        return this._deriveList((arr) => getListStats(arr).min);
+    }
+
+    mode() {
+        return this._deriveList(getListMode);
     }
 
     reverse() {
         return this._deriveList((arr) => {
             return Array.from(arr as any).reverse();
-        });
-    }
-
-    unique() {
-        return this._deriveList((arr) => {
-            return Array.from(new Set(Array.from(arr as any)));
         });
     }
 
@@ -132,16 +131,17 @@ class ListExprNamespace {
         });
     }
 
-    count_matches(item: any) {
+    sort(descending: boolean = false) {
+        return this._deriveList((arr) => sortList(arr, descending));
+    }
+
+    sum() {
+        return this._deriveList((arr) => getListStats(arr).sum);
+    }
+
+    unique() {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
-            let count = 0;
-            for (const val of list) {
-                if (val === item) {
-                    count++;
-                }
-            }
-            return count;
+            return Array.from(new Set(Array.from(arr as any)));
         });
     }
 }

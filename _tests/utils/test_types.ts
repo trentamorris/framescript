@@ -1,5 +1,6 @@
 declare const process: any;
-import { isArrayOfType } from "../../utils/types";
+import { isArrayOfType } from "../../utils/list";
+
 
 console.log("=========================================");
 console.log("STARTING UTILS TYPES TESTS...");
