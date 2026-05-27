@@ -15,7 +15,12 @@ export function isArrayOfType(
 
     const check = (v: unknown) => {
         if (v == null) {
-            return mode === "every";
+            // Nulls are compatible under 'every' mode (nullable lists),
+            // but should not count as a match under 'some' mode.
+            if (mode === "every") {
+                return true;
+            }
+            return false;
         }
         if (type === "date") {
             return isValidDateObj(v);
