@@ -1,4 +1,4 @@
-import { isArray } from "./types";
+import { isArray, isArrayOfType } from "./types";
 import { toValidNumber } from "./number";
 
 export function sortList(arr: unknown, descending: boolean = false): any[] {
@@ -65,15 +65,21 @@ export function getListMedian(arr: unknown): number | null {
     const stats = getListStats(arr);
     if (stats.count === 0) return null;
 
-    const nums: number[] = [];
-    for (const val of Array.from(arr as any)) {
-        const n = toValidNumber(val);
-        if (n !== null) {
-            nums.push(n);
+    let sorted: any[];
+    if (isArrayOfType(arr, "number")) {
+        const nums = Array.from(arr as any).filter((v) => v != null);
+        sorted = sortList(nums);
+    } else {
+        const nums: number[] = [];
+        for (const val of Array.from(arr as any)) {
+            const n = toValidNumber(val);
+            if (n !== null) {
+                nums.push(n);
+            }
         }
+        sorted = sortList(nums);
     }
 
-    const sorted = sortList(nums);
     const mid = Math.floor(stats.count / 2);
     if (stats.count % 2 !== 0) {
         return sorted[mid];
