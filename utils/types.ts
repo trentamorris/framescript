@@ -5,11 +5,12 @@ export function isArray(v: unknown): v is unknown[] | ArrayBufferView {
 }
 
 export type ArrayItemType = "string" | "number" | "boolean" | "bigint" | "object" | "date" | ((v: unknown) => boolean);
+export type ArrayCheckMode = "every" | "some";
 
 export function isArrayOfType(
     arr: unknown,
     type: ArrayItemType,
-    options: { mode?: "every" | "some"; includeNulls?: boolean } = {}
+    options: { mode?: ArrayCheckMode; includeNulls?: boolean } = {}
 ): boolean {
     if (!isArray(arr)) return false;
     const list = Array.from(arr as any);
