@@ -49,6 +49,11 @@ try {
     if (!isArrayOfType([1, 5, 6], isEven, { mode: "some" })) throw new Error("Expected [1, 5, 6] to have some even number");
     if (isArrayOfType([1, 5, 7], isEven, { mode: "some" })) throw new Error("Expected [1, 5, 7] to not have some even number");
 
+    // Test options.includeNulls: true
+    if (!isArrayOfType([1, 2, null, 3], "number", { includeNulls: true })) throw new Error("Expected [1, 2, null, 3] to match 'number' with includeNulls");
+    if (!isArrayOfType(["a", null, "b"], "string", { includeNulls: true })) throw new Error("Expected ['a', null, 'b'] to match 'string' with includeNulls");
+    if (!isArrayOfType([true, null, false], "boolean", { includeNulls: true })) throw new Error("Expected [true, null, false] to match 'boolean' with includeNulls");
+
     console.log("🎉 ALL UTILS TYPES TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("❌ UTILS TYPES TESTS FAILED:", err);
