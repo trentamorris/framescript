@@ -1,6 +1,6 @@
 import type { ExprConstructor } from "../../types";
 import { kleene, derive } from "../ExprBase";
-import { isArray, toValidNumber } from "../../utils";
+import { isArray, getListSumAndCount, getListMax, getListMin } from "../../utils";
 
 class ListExprNamespace {
     constructor(private expr: any) {}
@@ -20,64 +20,21 @@ class ListExprNamespace {
     }
 
     max() {
-        return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
-            if (list.length === 0) return null;
-            let maxVal: any = null;
-            for (const val of list) {
-                if (val == null) continue;
-                if (maxVal == null || val > maxVal) {
-                    maxVal = val;
-                }
-            }
-            return maxVal;
-        });
+        return this._deriveList((arr) => getListMax(arr));
     }
 
     min() {
-        return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
-            if (list.length === 0) return null;
-            let minVal: any = null;
-            for (const val of list) {
-                if (val == null) continue;
-                if (minVal == null || val < minVal) {
-                    minVal = val;
-                }
-            }
-            return minVal;
-        });
+        return this._deriveList((arr) => getListMin(arr));
     }
 
     sum() {
-        return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
-            let total = 0;
-            let count = 0;
-            for (const val of list) {
-                const n = toValidNumber(val);
-                if (n !== null) {
-                    total += n;
-                    count++;
-                }
-            }
-            return count > 0 ? total : null;
-        });
+        return this._deriveList((arr) => getListSumAndCount(arr).sum);
     }
 
     mean() {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
-            let total = 0;
-            let count = 0;
-            for (const val of list) {
-                const n = toValidNumber(val);
-                if (n !== null) {
-                    total += n;
-                    count++;
-                }
-            }
-            return count > 0 ? total / count : null;
+            const { sum, count } = getListSumAndCount(arr);
+            return sum !== null && count > 0 ? sum / count : null;
         });
     }
 
