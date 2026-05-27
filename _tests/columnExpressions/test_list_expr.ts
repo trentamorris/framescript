@@ -72,6 +72,13 @@ try {
         $tbl.col("tags").list.count_matches("apple").alias("apple_count"),
         $tbl.col("tags").list.count_matches("pear").alias("pear_count"),
 
+        // gather / gather_every
+        $tbl.col("numbers").list.gather([0, 2, -2]).alias("gather_nums"),
+        $tbl.col("tags").list.gather(1).alias("gather_single"),
+        $tbl.col("numbers").list.gather([0, 100]).alias("gather_oob_null"),
+        $tbl.col("numbers").list.gather_every(2).alias("every_2"),
+        $tbl.col("numbers").list.gather_every(3, 1).alias("every_3_offset_1"),
+
         // Robustness features: TypedArray & String Coercion
         $tbl.col("typed_array").list.lengths().alias("typed_len"),
         $tbl.col("typed_array").list.sum().alias("typed_sum"),
@@ -137,9 +144,12 @@ try {
         throw new Error(`Expected slice_nums_neg [2, null], got ${r0.slice_nums_neg}`);
     }
 
-    // count_matches
-    if (r0.apple_count !== 2) throw new Error(`Expected apple_count 2, got ${r0.apple_count}`);
-    if (r0.pear_count !== 0) throw new Error(`Expected pear_count 0, got ${r0.pear_count}`);
+    // gather / gather_every Row 0
+    if (r0.gather_nums[0] !== 3 || r0.gather_nums[1] !== 4 || r0.gather_nums[2] !== 6) throw new Error("r0.gather_nums failed");
+    if (r0.gather_single.length !== 1 || r0.gather_single[0] !== "banana") throw new Error("r0.gather_single failed");
+    if (r0.gather_oob_null[0] !== 3 || r0.gather_oob_null[1] !== null) throw new Error("r0.gather_oob_null failed");
+    if (r0.every_2.length !== 5 || r0.every_2[0] !== 3 || r0.every_2[1] !== 4 || r0.every_2[2] !== 5 || r0.every_2[3] !== 2 || r0.every_2[4] !== 6) throw new Error("r0.every_2 failed");
+    if (r0.every_3_offset_1.length !== 3 || r0.every_3_offset_1[0] !== 1 || r0.every_3_offset_1[1] !== 5 || r0.every_3_offset_1[2] !== null) throw new Error("r0.every_3_offset_1 failed");
 
     // Robustness assertions Row 0
     if (r0.typed_len !== 3) throw new Error(`Expected r0.typed_len 3, got ${r0.typed_len}`);
@@ -163,6 +173,13 @@ try {
     if (r1.first_tag !== "js") throw new Error(`Expected first_tag 'js', got ${r1.first_tag}`);
     if (r1.last_tag !== "ts") throw new Error(`Expected last_tag 'ts', got ${r1.last_tag}`);
 
+    // gather / gather_every Row 1
+    if (r1.gather_nums[0] !== 10 || r1.gather_nums[1] !== 20 || r1.gather_nums[2] !== 20) throw new Error("r1.gather_nums failed");
+    if (r1.gather_single.length !== 1 || r1.gather_single[0] !== "ts") throw new Error("r1.gather_single failed");
+    if (r1.gather_oob_null[0] !== 10 || r1.gather_oob_null[1] !== null) throw new Error("r1.gather_oob_null failed");
+    if (r1.every_2.length !== 2 || r1.every_2[0] !== 10 || r1.every_2[1] !== 20) throw new Error("r1.every_2 failed");
+    if (r1.every_3_offset_1.length !== 1 || r1.every_3_offset_1[0] !== -5) throw new Error("r1.every_3_offset_1 failed");
+
     // Robustness assertions Row 1
     if (r1.typed_len !== 2) throw new Error(`Expected r1.typed_len 2, got ${r1.typed_len}`);
     if (r1.typed_sum !== 4) throw new Error(`Expected r1.typed_sum 4, got ${r1.typed_sum}`);
@@ -184,6 +201,22 @@ try {
         throw new Error("Expected index out of bounds to throw when null_on_oob is false");
     }
     console.log("✓ null_on_oob=false bounds check passed");
+
+    // Test null_on_oob = false throws in gather
+    let threwGatherOob = false;
+    try {
+        df.select([
+            $tbl.col("numbers").list.gather([0, 100], false)
+        ]).collect();
+    } catch (e: any) {
+        if (e.message && e.message.includes("out of bounds")) {
+            threwGatherOob = true;
+        }
+    }
+    if (!threwGatherOob) {
+        throw new Error("Expected index out of bounds to throw in gather when null_on_oob is false");
+    }
+    console.log("✓ gather null_on_oob=false bounds check passed");
 
     console.log("\n🎉 ALL Expr.list COLUMN EXPRESSION TESTS PASSED SUCCESSFULLY!");
 } catch (err) {

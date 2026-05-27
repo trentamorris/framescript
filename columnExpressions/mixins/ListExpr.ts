@@ -56,6 +56,37 @@ class ListExprNamespace {
         return this.get(-1, null_on_oob);
     }
 
+    gather(indices: number | number[], null_on_oob: boolean = true) {
+        const idxs = Array.isArray(indices) ? indices : [indices];
+        return this._deriveList((arr) => {
+            const len = (arr as any).length;
+            const res = new Array(idxs.length);
+            for (let i = 0; i < idxs.length; i++) {
+                const index = idxs[i];
+                const val = (arr as any).at(index);
+                if (val === undefined && !null_on_oob) {
+                    throw new Error(`Index ${index} is out of bounds for list of length ${len}`);
+                }
+                res[i] = val ?? null;
+            }
+            return res;
+        });
+    }
+
+    gather_every(n: number, offset: number = 0) {
+        if (n <= 0) {
+            throw new Error("Step size n must be positive");
+        }
+        return this._deriveList((arr) => {
+            const len = (arr as any).length;
+            const res = [];
+            for (let i = offset; i < len; i += n) {
+                res.push((arr as any)[i]);
+            }
+            return res;
+        });
+    }
+
     contains(item: any) {
         return this._deriveList((arr) => {
             return Array.from(arr as any).includes(item);
