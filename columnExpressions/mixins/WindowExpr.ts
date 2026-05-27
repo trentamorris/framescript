@@ -5,7 +5,7 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
         public partitionBy: (string | IExpr)[] | null = (this as any).partitionBy || null;
 
-        private _rolling(windowSize: number, aggFn: (vals: any[]) => any) {
+        _rolling(windowSize: number, aggFn: (vals: any[]) => any) {
             const newInst = derive(this, (v) => v);
             newInst.partitionOpsIndex = this.ops.length;
             newInst.groupingOpsIndex = this.ops.length;

@@ -4,7 +4,7 @@ import { derive } from "../ExprBase"
 export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
         public aggFn: AggFn<any> | null = (this as any).aggFn || null;
-        private _setAgg(fn: AggFn<any>) {
+        _setAgg(fn: AggFn<any>) {
             const newInst = derive(this, (v) => v);
             newInst.aggFn = fn;
             newInst.groupingOpsIndex = this.ops.length;

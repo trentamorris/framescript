@@ -19,17 +19,17 @@ import {
     NS_PER_MS
 } from "../../utils";
 
-class DateTimeExprNamespace {
-    constructor(private expr: any) {}
+export class DateTimeExprNamespace {
+    constructor(public expr: any) {}
 
-    private _deriveDate(fn: (d: Date) => any) {
+    _deriveDate(fn: (d: Date) => any) {
         return derive(this.expr, kleene((v) => {
             const d = toValidDate(v);
             return d ? fn(d) : null;
         }));
     }
 
-    private _deriveDuration(fn: (v: number) => number) {
+    _deriveDuration(fn: (v: number) => number) {
         return derive(this.expr, kleene((v) => {
             return typeof v === "number" ? fn(v) : null;
         }));

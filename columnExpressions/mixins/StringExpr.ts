@@ -12,10 +12,10 @@ import {
 
 const REGEX_ESCAPE_REGEX = /[-/\\^$*+?.()|[\]{}]/g;
 
-class StringExprNamespace {
-    constructor(private expr: any) {}
+export class StringExprNamespace {
+    constructor(public expr: any) {}
 
-    private _deriveString(fn: (v: string) => any) {
+    _deriveString(fn: (v: string) => any) {
         return derive(this.expr, kleene((v) => fn(String(v))));
     }
 

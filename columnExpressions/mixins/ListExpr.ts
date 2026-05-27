@@ -2,10 +2,10 @@ import type { ExprConstructor } from "../../types";
 import { kleene, derive } from "../ExprBase";
 import { isArray, getListStats, getListMedian, getListMode, sortList } from "../../utils";
 
-class ListExprNamespace {
-    constructor(private expr: any) {}
+export class ListExprNamespace {
+    constructor(public expr: any) {}
 
-    private _deriveList(fn: (arr: any[] | ArrayBufferView) => any) {
+    _deriveList(fn: (arr: any[] | ArrayBufferView) => any) {
         return derive(this.expr, kleene((v) => {
             return isArray(v) ? fn(v as any) : null;
         }));
