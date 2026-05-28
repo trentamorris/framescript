@@ -23,3 +23,9 @@ This document outlines core engineering principles and standards for writing cle
 ## 6. Option Objects for Named Arguments
 - **Prefer Option Objects**: When functions require multiple optional parameters or configuration flags, avoid passing them as sequential positional arguments.
 - **Signature Pattern**: Use a pattern of one or two required positional arguments followed by an options object, i.e., `(requiredArg, options = { ... })`. This provides named-argument clarity, flexible default values, and prevents breaking API changes when adding new options.
+
+## 7. Performance, Loop Optimization & Low-Abstraction Core
+- **Avoid High-Level Iterators**: Prefer simple `for` (with cached length) and `while` loops over built-in higher-level array iterators like `forEach`, `map`, `filter`, and `reduce` in performance-critical paths (e.g., element-wise evaluations, aggregations).
+- **Minimize Object Allocation**: Avoid creating short-lived objects, intermediate arrays, or array spreads within loops. Use in-place updates, pre-allocated result arrays, or proxies where possible to reduce garbage collection overhead.
+- **Minimal Abstractions**: Keep execution paths direct. Avoid building layers of indirect callbacks, wrappers, or custom helper abstractions where a direct iterative implementation does the job.
+

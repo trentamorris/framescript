@@ -1,6 +1,6 @@
 declare const process: any;
-import { $tbl } from "../../index";
-import { MS_PER_SECOND, MS_PER_MINUTE, MS_PER_HOUR, MS_PER_DAY } from "../../utils";
+import { $tbl } from "../../src/index";
+import { MS_PER_SECOND, MS_PER_MINUTE, MS_PER_HOUR, MS_PER_DAY } from "../../src/utils";
 
 console.log("=========================================");
 console.log("STARTING COLUMN EXPRESSION DT NAMESPACE TESTS...");

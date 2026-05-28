@@ -1,5 +1,5 @@
 declare const process: any;
-import { $tbl } from "../../index";
+import { $tbl } from "../../src/index";
 
 const data = [
     { name: "Alice", age: 30, is_active: 1, joined: "2026-05-20" },

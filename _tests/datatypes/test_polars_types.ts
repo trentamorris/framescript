@@ -1,5 +1,5 @@
-import { DataFrame } from "../../dataframe";
-import { $tbl } from "../../api";
+import { DataFrame } from "../../src/dataframe";
+import { $tbl } from "../../src/api";
 
 console.log("=========================================");
 console.log("STARTING POLARS DATATYPES TESTS...");

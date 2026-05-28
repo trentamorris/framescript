@@ -1,5 +1,5 @@
 declare const process: any;
-import { $tbl } from "../../index";
+import { $tbl } from "../../src/index";
 
 console.log("=========================================");
 console.log("STARTING COLUMN EXPRESSION LIST NAMESPACE TESTS...");

@@ -8,6 +8,7 @@ import "./columnExpressions/test_str_expr";
 import "./columnExpressions/test_window";
 import "./columnExpressions/test_arithmetic_expr";
 import "./columnExpressions/test_comparison_expr";
+import "./columnExpressions/test_new_manipulations";
 import "./dataframe/run_all";
 import "./datatypes/test_polars_types";
 import "./utils/test_date_robustness";

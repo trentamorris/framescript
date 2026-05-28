@@ -1,4 +1,4 @@
-import { DataFrame } from "../../dataframe";
+import { DataFrame } from "../../src/dataframe";
 
 console.log("Running unpivot tests...");
 

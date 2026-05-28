@@ -5,24 +5,17 @@
     "moduleResolution": "node",
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "index.ts",
-    "api.ts",
-    "types.ts",
-    "dataframe/**/*",
-    "columnExpressions/**/*",
-    "datatypes/**/*",
-    "utils/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "_tests/**/*",
     "dist"
   ]
 }

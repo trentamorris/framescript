@@ -1,5 +1,5 @@
 declare const process: any;
-import { isArrayOfType } from "../../utils/list";
+import { isArrayOfType } from "../../src/utils/list";
 
 
 console.log("=========================================");

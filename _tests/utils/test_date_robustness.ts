@@ -1,5 +1,5 @@
 declare const process: any;
-import { strftime } from "../../utils/date";
+import { strftime } from "../../src/utils/date";
 
 console.log("=========================================");
 console.log("STARTING DATE UTILS ROBUSTNESS TESTS...");
