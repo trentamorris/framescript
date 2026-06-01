@@ -80,7 +80,7 @@ try {
         $tbl.col("datetime_str").dt.strftime("%A %B", "fr-FR").alias("formatted_fr"),
         $tbl.col("datetime_str").dt.strftime("%A %B", "de-DE").alias("formatted_de"),
         $tbl.col("datetime_str").dt.to_string("%Y-%m-%d").alias("to_str_formatted")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.log("Coerced Expr.dt results:");
     console.dir(projected, { depth: null });

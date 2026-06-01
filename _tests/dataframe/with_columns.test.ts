@@ -21,7 +21,7 @@ if (schemaRecord.status === undefined || schemaRecord.doubleAge === undefined) {
     throw new Error("New columns missing in schema from record input");
 }
 
-const collectedRecord = dfWithRecord.collect() as any[];
+const collectedRecord = dfWithRecord.to_dicts() as any[];
 if (
     collectedRecord[0].status !== "active" ||
     collectedRecord[0].doubleAge !== 60 ||
@@ -39,7 +39,7 @@ const schemaExpr = dfWithExpr.getSchema();
 if (schemaExpr.agePlusFive === undefined) {
     throw new Error("New column missing in schema from expression input");
 }
-const collectedExpr = dfWithExpr.collect() as any[];
+const collectedExpr = dfWithExpr.to_dicts() as any[];
 if (collectedExpr[0].agePlusFive !== 35 || collectedExpr[1].agePlusFive !== 30) {
     throw new Error("Values mismatch from expression input");
 }

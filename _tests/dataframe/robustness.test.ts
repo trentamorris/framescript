@@ -33,7 +33,7 @@ const schemaSparse = dfSparse.getSchema();
 assert("name" in schemaSparse, "Sparse schema should contain name");
 assert("age" in schemaSparse, "Sparse schema should contain age");
 assert("city" in schemaSparse, "Sparse schema should contain city");
-const collectedSparse = dfSparse.collect() as any[];
+const collectedSparse = dfSparse.to_dicts() as any[];
 assert(collectedSparse[0].city === null, "Missing field in first row should be null");
 assert(collectedSparse[1].age === null, "Missing field in second row should be null");
 
@@ -122,14 +122,14 @@ const dfFiltered = dfFilterTest.filter((row: any) => {
     assert(desc !== undefined && desc.enumerable === true, "getOwnPropertyDescriptor should work on row proxy");
     return row.a > 2;
 });
-assert(dfFiltered.height === 1 && dfFiltered.collect()[0].a === 3, "Filtered proxy logic should execute correctly");
+assert(dfFiltered.height === 1 && dfFiltered.to_dicts()[0].a === 3, "Filtered proxy logic should execute correctly");
 
 // 9. Diagonal concat pre-allocation correctness
 const dfDiag1 = new DataFrame([{ a: 1 }]);
 const dfDiag2 = new DataFrame([{ b: 2 }]);
 const dfDiagConcat = $tbl.concat([dfDiag1, dfDiag2], { how: "diagonal" });
 assert(dfDiagConcat.height === 2, "Diagonal concat height should be 2");
-const collectedDiag = dfDiagConcat.collect() as any[];
+const collectedDiag = dfDiagConcat.to_dicts() as any[];
 assert(collectedDiag[0].a === 1 && collectedDiag[0].b === null, "First diagonal row values correct");
 assert(collectedDiag[1].a === null && collectedDiag[1].b === 2, "Second diagonal row values correct");
 

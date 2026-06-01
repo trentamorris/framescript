@@ -23,7 +23,7 @@ try {
         $tbl.col("salary").mean().over("dept").alias("avg_salary_by_dept")
     );
 
-    const result = dfWithWindow.collect();
+    const result = dfWithWindow.to_dicts();
     console.log("\nResult of mean().over('dept'):");
     console.table(result);
 
@@ -47,7 +47,7 @@ try {
     const resMulti = dfMulti.select(
         "name",
         $tbl.col("salary").sum().over(["dept", "role"]).alias("sum_salary_by_dept_role")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of sum().over(['dept', 'role']):");
     console.table(resMulti);
@@ -65,7 +65,7 @@ try {
         "name",
         $tbl.col("salary").mean().over("dept").add(100).alias("avg_salary_plus_100"),
         $tbl.col("salary").mean().over("dept").gt(2000).alias("avg_salary_gt_2000")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of mean().over('dept') with post-aggregations (.add(100), .gt(2000)):");
     console.table(dfPostAgg);
@@ -91,7 +91,7 @@ try {
         $tbl.col("salary").lag(1).over("dept").alias("salary_lag_1"),
         $tbl.col("salary").lead(1).over("dept").alias("salary_lead_1"),
         $tbl.col("salary").row_number().over("dept").alias("row_num")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of positional window functions (lag(1), lead(1), row_number()):");
     console.table(dfPositional);
@@ -129,7 +129,7 @@ try {
         $tbl.col("salary").rolling_mean(2).over("dept").alias("rolling_mean_2"),
         $tbl.col("salary").rolling_quantile(0.5, 2).over("dept").alias("rolling_median_2"),
         $tbl.col("salary").rolling_rank(2).over("dept").alias("rolling_rank_2")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of extended window functions (dense_rank(), cum_sum(), cum_sum_reverse, cum_count(), cum_count_reverse, rolling_mean(2), rolling_quantile(0.5, 2), rolling_rank(2)):");
     console.table(dfExtended);
@@ -185,7 +185,7 @@ try {
         "name",
         $tbl.col("salary").first().over("dept").alias("first_salary"),
         $tbl.col("salary").last().over("dept").alias("last_salary")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of first().over('dept') and last().over('dept'):");
     console.table(dfFirstLast);
@@ -207,7 +207,7 @@ try {
     const dfRollingPost = df.select(
         "name",
         $tbl.col("salary").rolling_mean(2).over("dept").gt(3500).alias("rolling_mean_gt_3500")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of rolling_mean(2).over('dept').gt(3500):");
     console.table(dfRollingPost);
@@ -224,7 +224,7 @@ try {
     const dfGrouped = df.groupby(["dept"]).agg(
         $tbl.col("salary").mean().alias("avg_salary"),
         $tbl.col("salary").mean().gt(2000).alias("avg_salary_gt_2000")
-    ).collect();
+    ).to_dicts();
 
     console.log("\nResult of GroupBy aggregation:");
     console.table(dfGrouped);
@@ -254,7 +254,7 @@ try {
 
     // 8. Test wildcard select and exclude
     console.log("\nTesting wildcard select and exclude:");
-    const dfAllExclude = df.select($tbl.exclude("salary").str.lower()).collect();
+    const dfAllExclude = df.select($tbl.exclude("salary").str.lower()).to_dicts();
     console.table(dfAllExclude);
 
     if (dfAllExclude.length !== 5 || dfAllExclude[0].salary !== undefined || dfAllExclude[0].name !== "alice" || dfAllExclude[0].dept !== "hr") {
@@ -266,7 +266,7 @@ try {
     console.log("\nTesting with_columns wildcard select and exclude:");
     const dfWithCols = df.with_columns(
         $tbl.exclude("salary").str.upper()
-    ).collect();
+    ).to_dicts();
     console.table(dfWithCols);
 
     if (dfWithCols.length !== 5 || dfWithCols[0].salary !== 1000 || dfWithCols[0].name !== "ALICE" || dfWithCols[0].dept !== "HR") {
@@ -278,7 +278,7 @@ try {
     console.log("\nTesting with_columns old record signature:");
     const dfWithColsRecord = df.with_columns({
         "salary_plus_500": $tbl.col("salary").add(500)
-    }).collect();
+    }).to_dicts();
     console.table(dfWithColsRecord);
 
     if (dfWithColsRecord.length !== 5 || dfWithColsRecord[0].salary_plus_500 !== 1500) {
@@ -304,7 +304,7 @@ try {
         $tbl.col("val_num").gt(null).alias("gt_null"),
         // 10.3 3-valued Kleene AND logic
         $tbl.col("val_bool").and($tbl.col("val_bool").is_null()).alias("kleene_and")
-    ).collect();
+    ).to_dicts();
 
     console.table(dfNullsRes);
 
@@ -344,7 +344,7 @@ try {
     const dfJoinRight = $tbl.data(joinRightData);
 
     // Inner Join: null ids should NOT match, only id: 1 should match
-    const dfInnerJoined = dfJoinLeft.join({ other: dfJoinRight, on: "id", how: "inner" }).collect();
+    const dfInnerJoined = dfJoinLeft.join({ other: dfJoinRight, on: "id", how: "inner" }).to_dicts();
     console.log("Inner Join Result:");
     console.table(dfInnerJoined);
     if (dfInnerJoined.length !== 1 || dfInnerJoined[0].id !== 1 || dfInnerJoined[0].val !== "L1" || dfInnerJoined[0].rval !== "R1") {
@@ -353,7 +353,7 @@ try {
     }
 
     // Left Join: null ids should NOT match, and left null id should be kept with right columns null
-    const dfLeftJoined = dfJoinLeft.join({ other: dfJoinRight, on: "id", how: "left" }).collect();
+    const dfLeftJoined = dfJoinLeft.join({ other: dfJoinRight, on: "id", how: "left" }).to_dicts();
     console.log("Left Join Result:");
     console.table(dfLeftJoined);
     if (dfLeftJoined.length !== 3) {
@@ -367,7 +367,7 @@ try {
     }
 
     // Outer Join: null ids should NOT match, both null key rows kept
-    const dfOuterJoined = dfJoinLeft.join({ other: dfJoinRight, on: "id", how: "outer" }).collect();
+    const dfOuterJoined = dfJoinLeft.join({ other: dfJoinRight, on: "id", how: "outer" }).to_dicts();
     console.log("Outer Join Result:");
     console.table(dfOuterJoined);
     if (dfOuterJoined.length !== 5) {
@@ -385,7 +385,7 @@ try {
     const dfUsability = $tbl.data(testUsabilityData);
 
     // groupby with single string:
-    const dfGroupedUsability = dfUsability.groupby("category").agg($tbl.col("val").sum().alias("sum_val")).collect();
+    const dfGroupedUsability = dfUsability.groupby("category").agg($tbl.col("val").sum().alias("sum_val")).to_dicts();
     console.log("Groupby Usability Result:");
     console.table(dfGroupedUsability);
     if (dfGroupedUsability.length !== 2) {
@@ -394,7 +394,7 @@ try {
     }
 
     // unique with single string:
-    const dfUniqueUsability = dfUsability.unique("category").collect();
+    const dfUniqueUsability = dfUsability.unique("category").to_dicts();
     console.log("Unique Usability Result:");
     console.table(dfUniqueUsability);
     if (dfUniqueUsability.length !== 2) {
@@ -403,7 +403,7 @@ try {
     }
 
     // unpivot with single string:
-    const dfUnpivotUsability = dfUsability.unpivot({ idVars: "category", valueVars: "val" }).collect();
+    const dfUnpivotUsability = dfUsability.unpivot({ idVars: "category", valueVars: "val" }).to_dicts();
     console.log("Unpivot Usability Result:");
     console.table(dfUnpivotUsability);
     if (dfUnpivotUsability.length !== 3) {
@@ -412,7 +412,7 @@ try {
     }
 
     // pivot with single string:
-    const dfPivotUsability = dfUsability.pivot({ index: "category", columns: "category", values: "val" }).collect();
+    const dfPivotUsability = dfUsability.pivot({ index: "category", columns: "category", values: "val" }).to_dicts();
     console.log("Pivot Usability Result:");
     console.table(dfPivotUsability);
     if (dfPivotUsability.length !== 2) {
@@ -424,7 +424,7 @@ try {
     console.log("\nTesting constructor array enforcement:");
     try {
         const dfInvalid = $tbl.data(null as any);
-        const collectedInvalid = dfInvalid.collect();
+        const collectedInvalid = dfInvalid.to_dicts();
         if (!Array.isArray(collectedInvalid) || collectedInvalid.length !== 0) {
             console.error("Constructor array enforcement failed: collected is not empty array.");
             passed = false;
@@ -438,15 +438,15 @@ try {
     console.log("\nTesting defensive null/undefined guards:");
     try {
         // 14.1 Rename with undefined mapping
-        const dfRenameGuard = dfUsability.rename(undefined).collect();
+        const dfRenameGuard = dfUsability.rename(undefined).to_dicts();
         if (dfRenameGuard.length !== 3) {
             console.error("Rename guard failed!");
             passed = false;
         }
 
         // 14.2 Sort with undefined config or missing config.by
-        const dfSortGuard1 = dfUsability.sort(undefined).collect();
-        const dfSortGuard2 = dfUsability.sort({} as any).collect();
+        const dfSortGuard1 = dfUsability.sort(undefined).to_dicts();
+        const dfSortGuard2 = dfUsability.sort({} as any).to_dicts();
         if (dfSortGuard1.length !== 3 || dfSortGuard2.length !== 3) {
             console.error("Sort guard failed!");
             passed = false;

@@ -15,7 +15,7 @@ if (dfRenamed.getSchema().first_name !== undefined) {
     throw new Error("Old column first_name schema still exists");
 }
 
-const collected = dfRenamed.collect() as any[];
+const collected = dfRenamed.to_dicts() as any[];
 if (collected[0].firstName !== "Alice") {
     throw new Error(`Expected Alice, got ${collected[0].firstName}`);
 }

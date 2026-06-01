@@ -17,7 +17,7 @@ if (dfLim.height !== 2) throw new Error("Limit height mismatch");
 // 2. Slice
 const dfSlice = df.slice(1, 4);
 if (dfSlice.height !== 3) throw new Error("Slice height mismatch");
-const collectedSlice = dfSlice.collect();
+const collectedSlice = dfSlice.to_dicts();
 if (collectedSlice[0].val !== 2 || collectedSlice[2].val !== 4) {
     throw new Error("Slice values mismatch");
 }

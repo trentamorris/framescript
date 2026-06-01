@@ -1,7 +1,7 @@
 import { DataFrame } from "../dataframe"
 import { inferColumnType } from "../utils"
 import type { GroupMap } from "../types"
-import { resolveColumnSelectors } from "../../columnExpressions"
+import { resolveColumnSelectors, ALL_COLUMNS_MARKER } from "../../columnExpressions"
 import { DataType } from "../../datatypes"
 import type { IExpr, ColumnDict } from "../../types"
 
@@ -30,7 +30,7 @@ export class GroupedData<T, K extends keyof T> {
         this.parentSchema = parentSchema
     }
 
-    collect<U extends Record<string, any> = any>(): DataFrame<U> {
+    to_dataframe<U extends Record<string, any> = any>(): DataFrame<U> {
         const keysLen = this.keys.length;
         const keysStr = new Array(keysLen);
         for (let i = 0; i < keysLen; i++) {
@@ -97,7 +97,7 @@ export class GroupedData<T, K extends keyof T> {
 
         for (let i = 0; i < expandedExprs.length; i++) {
             const e = expandedExprs[i];
-            const targetKey = e.outputName || e.colName || "*";
+            const targetKey = e.outputName || e.colName || ALL_COLUMNS_MARKER;
 
             if (!e.aggFn) {
                 newColumns[targetKey] = e.evaluate(newColumns, numGroups);
@@ -124,7 +124,7 @@ export class GroupedData<T, K extends keyof T> {
             outSchema[k] = this.parentSchema[k];
         }
         for (const e of expandedExprs) {
-            const targetKey = e.outputName || e.colName || "*";
+            const targetKey = e.outputName || e.colName || ALL_COLUMNS_MARKER;
             outSchema[targetKey] = inferColumnType(newColumns[targetKey]);
         }
 

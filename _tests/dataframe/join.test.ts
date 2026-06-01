@@ -16,14 +16,14 @@ const right = new DataFrame([
 const dfInner = left.join({ other: right, on: "id", how: "inner" });
 
 if (dfInner.height !== 1) throw new Error("Inner join height mismatch");
-if (dfInner.collect()[0].val !== "L1" || dfInner.collect()[0].rval !== "R1") {
+if (dfInner.to_dicts()[0].val !== "L1" || dfInner.to_dicts()[0].rval !== "R1") {
     throw new Error("Inner join values mismatch");
 }
 
 // 2. Left Join
 const dfLeft = left.join({ other: right, on: "id", how: "left" });
 if (dfLeft.height !== 2) throw new Error("Left join height mismatch");
-const collectedLeft = dfLeft.collect() as any[];
+const collectedLeft = dfLeft.to_dicts() as any[];
 if (collectedLeft[1].val !== "L2" || collectedLeft[1].rval !== null) {
     throw new Error("Left join values mismatch");
 }

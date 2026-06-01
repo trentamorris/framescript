@@ -62,7 +62,7 @@ const processedDf = df.select(
   $tbl.col("tags").list.lengths().alias("tag_count")
 );
 
-console.log(processedDf.collect());
+console.log(processedDf.to_dicts());
 /* Output:
 [
   { id: 1, NAME_UPPER: 'ALICE', join_year: 2026, sales_adjusted: 1700.5, tag_count: 2 },

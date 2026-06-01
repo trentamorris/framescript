@@ -1,6 +1,6 @@
 import { DataFrame } from "../../src/dataframe";
 
-console.log("Running constructor and collect tests...");
+console.log("Running constructor and to_dicts tests...");
 
 const data = [
     { id: 1, name: "Alice" },
@@ -23,8 +23,8 @@ if (schema.name.name !== "Utf8") {
     throw new Error(`Expected name to be Utf8, got ${schema.name.name}`);
 }
 
-// Verify collect
-const collected = df.collect();
+// Verify to_dicts
+const collected = df.to_dicts();
 if (collected.length !== 2) {
     throw new Error(`Expected collected length 2, got ${collected.length}`);
 }
@@ -32,5 +32,5 @@ if (collected[0].name !== "Alice" || collected[1].id !== 2) {
     throw new Error("Collected values mismatch");
 }
 
-console.log("✓ constructor and collect tests passed!");
+console.log("✓ constructor and to_dicts tests passed!");
 

@@ -16,7 +16,7 @@ if (dfFiltered1.height !== 2) throw new Error("Filter by predicate height mismat
 // Filter using expression
 const dfFiltered2 = df.filter($tbl.col("age").ge(25));
 if (dfFiltered2.height !== 2) throw new Error("Filter by expression height mismatch");
-const collected = dfFiltered2.collect();
+const collected = dfFiltered2.to_dicts();
 if (collected[0].name !== "Alice" || collected[1].name !== "Charlie") {
     throw new Error("Filtered values mismatch");
 }

@@ -87,7 +87,7 @@ const schema = {
 };
 
 const df = new DataFrame(data, schema);
-const collected = df.collect() as any[];
+const collected = df.to_dicts() as any[];
 const row = collected[0];
 
 console.log("Coerced row data:");

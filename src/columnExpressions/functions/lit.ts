@@ -1,10 +1,11 @@
 import { ColumnExpr } from "../ColumnExpr";
+import { LITERAL_MARKER } from "../constants";
 
 /**
  * Creates a literal column expression that repeats the given value for all rows.
  */
 export function lit(value: any): ColumnExpr<any> {
-    const expr = new ColumnExpr("*literal*");
+    const expr = new ColumnExpr(LITERAL_MARKER);
     expr.isLiteral = true;
     expr.literalValue = value;
     expr.ops.push((vArray) => {

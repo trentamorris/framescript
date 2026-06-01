@@ -15,7 +15,7 @@ if (dfPivoted.height !== 2) {
     throw new Error(`Expected height 2, got ${dfPivoted.height}`);
 }
 
-const collected = dfPivoted.collect();
+const collected = dfPivoted.to_dicts();
 
 const y2020 = collected.find(r => r.year === 2020);
 const y2021 = collected.find(r => r.year === 2021);

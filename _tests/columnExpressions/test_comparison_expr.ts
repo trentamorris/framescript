@@ -51,7 +51,7 @@ try {
         $tbl.col("target").is_in($tbl.col("tags")).alias("is_in_expr"),
         $tbl.col("target").not_in($tbl.col("tags")).alias("not_in_expr"),
         $tbl.col("target").is_in(["a", "b"]).alias("is_in_array")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.dir(projected, { depth: null });
 
@@ -101,7 +101,7 @@ try {
         $tbl.col("val").between($tbl.col("lower"), $tbl.col("upper")).alias("between"),
         $tbl.col("val").is_in(new Int32Array([15, 20]) as any).alias("is_in_static"),
         $tbl.col("val").and(true).alias("and_true")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     if (typedProjected[0].between !== true) throw new Error("TypedArray between failed on index 0");
     if (typedProjected[1].between !== false) throw new Error("TypedArray between failed on index 1");

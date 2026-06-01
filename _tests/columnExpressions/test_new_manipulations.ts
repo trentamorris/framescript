@@ -68,7 +68,7 @@ try {
         $tbl.lit([1, 2]).alias("lit_arr"),
         $tbl.coalesce($tbl.col("val"), $tbl.col("other_val")).alias("coalesce_val_other"),
         $tbl.coalesce($tbl.col("val"), 999).alias("coalesce_val_static")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.log("New manipulations test results:");
     console.dir(projected, { depth: null });
@@ -137,7 +137,7 @@ try {
         $tbl.col("numeric_list").list.first().quantile(0.5).alias("q_50"),
         $tbl.col("numeric_list").list.first().quantile(0.9).alias("q_90"),
         $tbl.col("numeric_list").list.first().n_unique().alias("n_uniq")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.log("Aggregation test results:");
     console.dir(aggResult, { depth: null });

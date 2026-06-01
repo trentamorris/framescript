@@ -12,7 +12,7 @@ if (dfDropped.getSchema().active !== undefined) {
     throw new Error("Dropped column active still exists in schema");
 }
 
-const collected = dfDropped.collect() as any[];
+const collected = dfDropped.to_dicts() as any[];
 if (collected[0].active !== undefined) {
     throw new Error("Dropped column active still exists in collected row");
 }

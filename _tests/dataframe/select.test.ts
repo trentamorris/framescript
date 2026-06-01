@@ -15,7 +15,7 @@ const schema1 = df1.getSchema();
 if (schema1.name === undefined || schema1.city === undefined || schema1.age !== undefined) {
     throw new Error("Columns mismatch on simple selection schema");
 }
-const collected1 = df1.collect();
+const collected1 = df1.to_dicts();
 if (collected1[0].name !== "Alice" || collected1[0].city !== "NY" || (collected1[0] as any).age !== undefined) {
     throw new Error("Values mismatch on simple selection");
 }
@@ -26,7 +26,7 @@ const schema2 = df2.getSchema();
 if (schema2.years === undefined || schema2.name === undefined || schema2.age !== undefined) {
     throw new Error("Columns mismatch on expression selection schema");
 }
-const collected2 = df2.collect();
+const collected2 = df2.to_dicts();
 if (collected2[0].years !== 30 || collected2[0].name !== "Alice") {
     throw new Error("Values mismatch on expression selection");
 }

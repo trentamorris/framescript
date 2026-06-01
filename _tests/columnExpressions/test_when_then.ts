@@ -25,7 +25,7 @@ try {
             .then($tbl.col("category"))
             .otherwise($tbl.col("fallback_val"))
             .alias("basic_expr_other")
-    ).collect() as any[];
+    ).to_dicts() as any[];
 
     console.log("Basic When/Then/Otherwise Results:");
     console.dir(res1, { depth: null });
@@ -50,7 +50,7 @@ try {
         chained_expr: $tbl.when($tbl.col("val").gt(10)).then($tbl.lit("GT10"))
             .when($tbl.col("val").gt(6)).then($tbl.lit("GT6"))
             .otherwise($tbl.lit("LT_EQ6"))
-    }).collect() as any[];
+    }).to_dicts() as any[];
 
     console.log("Chained When/Then/Otherwise Results:");
     console.dir(res2, { depth: null });
@@ -70,7 +70,7 @@ try {
         $tbl.when($tbl.col("val").gt(10))
             .then($tbl.col("category"))
             .alias("omitted_otherwise")
-    ).collect() as any[];
+    ).to_dicts() as any[];
 
     console.log("Omitted Otherwise Results:");
     console.dir(res3, { depth: null });
@@ -87,7 +87,7 @@ try {
         $tbl.when($tbl.col("val").gt(10)).then($tbl.lit(1)).otherwise($tbl.lit(0))
             .cast($tbl.DataType.Boolean)
             .alias("cast_bool")
-    ).collect() as any[];
+    ).to_dicts() as any[];
 
     console.log("Aliasing/Casting Results:");
     console.dir(res4, { depth: null });
@@ -101,7 +101,7 @@ try {
         basic_expr: $tbl.when($tbl.col("val").gt(10))
             .then($tbl.col("category"))
             .otherwise($tbl.col("fallback_val"))
-    }).collect() as any[];
+    }).to_dicts() as any[];
 
     console.log("Object/Record syntax inside select() Results:");
     console.dir(res5, { depth: null });

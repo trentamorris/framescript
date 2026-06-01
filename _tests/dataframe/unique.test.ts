@@ -14,7 +14,7 @@ const dfUniqueAll = df.unique();
 if (dfUniqueAll.height !== 3) {
     throw new Error(`Expected height 3, got ${dfUniqueAll.height}`);
 }
-const colAll = dfUniqueAll.collect();
+const colAll = dfUniqueAll.to_dicts();
 // The last row should be omitted
 if (colAll.filter(r => r.a === 1 && r.b === 2 && r.c === 3).length !== 1) {
     throw new Error("Full row duplicate not removed or too many removed");
@@ -25,7 +25,7 @@ const dfUniqueAB = df.unique(["a", "b"]);
 if (dfUniqueAB.height !== 2) {
     throw new Error(`Expected height 2, got ${dfUniqueAB.height}`);
 }
-const colAB = dfUniqueAB.collect();
+const colAB = dfUniqueAB.to_dicts();
 // There should only be one row with a=1, b=2, and one with a=2, b=3
 if (colAB.filter(r => r.a === 1 && r.b === 2).length !== 1) {
     throw new Error("Duplicate on column subset (a, b) not handled");

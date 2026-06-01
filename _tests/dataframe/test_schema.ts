@@ -36,7 +36,7 @@ try {
     };
 
     const dfCoerced = $tbl.data(data, explicitSchema);
-    const coercedData = dfCoerced.collect() as any[];
+    const coercedData = dfCoerced.to_dicts() as any[];
     
     console.log("\nCoerced Data (with Null Padding):");
     console.table(coercedData);
@@ -70,7 +70,7 @@ try {
     };
 
     const dfComplex = $tbl.data(complexData, complexSchema);
-    const complexResult = dfComplex.collect() as any[];
+    const complexResult = dfComplex.to_dicts() as any[];
 
     console.log("\nComplex List & Struct Coerced Result:");
     console.dir(complexResult, { depth: null });

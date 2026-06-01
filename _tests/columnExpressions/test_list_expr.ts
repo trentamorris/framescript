@@ -86,7 +86,7 @@ try {
         $tbl.col("typed_array").list.sum().alias("typed_sum"),
         $tbl.col("string_nums").list.sum().alias("coerced_sum"),
         $tbl.col("string_nums").list.mean().alias("coerced_mean")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.log("Coerced Expr.list results:");
     console.dir(projected, { depth: null });
@@ -197,7 +197,7 @@ try {
     try {
         df.select([
             $tbl.col("numbers").list.get(100, false)
-        ]).collect();
+        ]).to_dicts();
     } catch (e: any) {
         if (e.message && e.message.includes("out of bounds")) {
             threwOob = true;
@@ -213,7 +213,7 @@ try {
     try {
         df.select([
             $tbl.col("numbers").list.gather([0, 100], false)
-        ]).collect();
+        ]).to_dicts();
     } catch (e: any) {
         if (e.message && e.message.includes("out of bounds")) {
             threwGatherOob = true;

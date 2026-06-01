@@ -14,7 +14,7 @@ const dfAgg = df.groupby("dept").agg(
 );
 
 if (dfAgg.height !== 2) throw new Error("Groupby aggregation height mismatch");
-const collected = dfAgg.collect();
+const collected = dfAgg.to_dicts();
 
 const hrRow = collected.find(r => r.dept === "HR");
 const itRow = collected.find(r => r.dept === "IT");

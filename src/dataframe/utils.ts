@@ -80,29 +80,6 @@ export function resolveWindowExpr(expr: IExpr, columns: ColumnDict, height: numb
     return expr.evaluatePostPartition(results, columns);
 }
 
-
-export function getRowJoinKeys(row: any, keys: any[]): { hash: string; hasNull: boolean } {
-    if (!row) {
-        return { hash: "", hasNull: true };
-    }
-    const len = keys.length;
-    const vals = new Array(len);
-    let hasNull = false;
-    for (let i = 0; i < len; i++) {
-        const val = row[keys[i]];
-        if (val == null) {
-            hasNull = true;
-            vals[i] = "";
-        } else {
-            vals[i] = String(val);
-        }
-    }
-    return {
-        hash: vals.join(KEY_SEPARATOR),
-        hasNull
-    };
-}
-
 export function rowsToColumns(rows: any[]): { columns: ColumnDict; height: number } {
     if (!Array.isArray(rows) || rows.length === 0) {
         return { columns: {}, height: 0 };

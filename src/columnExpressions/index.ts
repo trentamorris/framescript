@@ -1,6 +1,8 @@
 import type { IExpr } from "../types"
 import { ColumnExpr } from "./ColumnExpr"
+import { ALL_COLUMNS_MARKER } from "./constants"
 
+export * from "./constants"
 export * from "./ExprBase"
 export * from "./mixins/ArithmeticExpr"
 export * from "./mixins/LogicalExpr"
@@ -28,7 +30,7 @@ export function resolveColumnSelectors(
     for (const expr of exprs) {
         if (typeof expr === "string") {
             expanded.push(new ColumnExpr(expr));
-        } else if (expr instanceof ColumnExpr && expr.colName === "*") {
+        } else if (expr instanceof ColumnExpr && expr.colName === ALL_COLUMNS_MARKER) {
             const excluded = new Set(expr.excludedCols);
             for (const key of allKeys) {
                 if (!excludeSet.has(key) && !excluded.has(key)) {
@@ -41,7 +43,7 @@ export function resolveColumnSelectors(
                     if (expr.evaluateWindow) {
                         concrete.evaluateWindow = expr.evaluateWindow;
                     }
-                    if (expr.outputName && expr.outputName !== "*") {
+                    if (expr.outputName && expr.outputName !== ALL_COLUMNS_MARKER) {
                         concrete.outputName = expr.outputName;
                     }
                     expanded.push(concrete);

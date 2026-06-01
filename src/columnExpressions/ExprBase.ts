@@ -1,6 +1,7 @@
 import type { IExpr, OpFn, AggFn, ColumnData, ColumnDict } from "../types"
 import { isArrayOrTypedArray } from "../utils"
 import type { DataType } from "../datatypes"
+import { ALL_COLUMNS_MARKER } from "./constants"
 
 export const kleeneUnary = (fn: (v: any) => any) => {
     return (vArray: ColumnData) => {
@@ -92,7 +93,7 @@ export class ExprBase implements IExpr {
 
     evaluate(columns: ColumnDict, height: number): ColumnData {
         const name = (this as any).colName;
-        let value = name && name !== "*"
+        let value = name && name !== ALL_COLUMNS_MARKER
             ? (columns[name] || new Array(height).fill(null))
             : new Array(height).fill(null);
 
@@ -106,7 +107,7 @@ export class ExprBase implements IExpr {
 
     private _evaluatePre(opsIndex: number | undefined, columns: ColumnDict, height: number): ColumnData {
         const name = (this as any).colName;
-        let value = name && name !== "*"
+        let value = name && name !== ALL_COLUMNS_MARKER
             ? (columns[name] || new Array(height).fill(null))
             : new Array(height).fill(null);
         const ops = this.ops;

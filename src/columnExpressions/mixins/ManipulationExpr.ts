@@ -24,5 +24,11 @@ export const ManipulationExpr = <TBase extends ExprConstructor>(Base: TBase) => 
                 return result;
             }) as this;
         }
+
+        reverse(): this {
+            return derive(this, (vArray) => {
+                return (vArray as any).slice().reverse();
+            }) as this;
+        }
     }
 }

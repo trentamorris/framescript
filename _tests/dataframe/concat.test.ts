@@ -9,14 +9,14 @@ const df2 = new DataFrame([{ id: 2, name: "Bob" }]);
 // 1. Vertical Concat (Top-Level)
 const dfVert = $tbl.concat([df1, df2], { how: "vertical" });
 if (dfVert.height !== 2) throw new Error("Vertical concat height mismatch");
-const collectedVert = dfVert.collect();
+const collectedVert = dfVert.to_dicts();
 if (collectedVert[1].name !== "Bob") throw new Error("Vertical concat value mismatch");
 
 // 2. Horizontal Concat (Instance-Level, verifying that 'this' is prepended)
 const df3 = new DataFrame([{ age: 25 }]);
 const dfHoriz = df1.concat([df3], { how: "horizontal" });
 if (dfHoriz.height !== 1) throw new Error("Horizontal concat height mismatch");
-const collectedHoriz = dfHoriz.collect() as any[];
+const collectedHoriz = dfHoriz.to_dicts() as any[];
 if (collectedHoriz[0].age !== 25 || collectedHoriz[0].name !== "Alice") {
     throw new Error("Horizontal concat values mismatch");
 }
@@ -25,7 +25,7 @@ if (collectedHoriz[0].age !== 25 || collectedHoriz[0].name !== "Alice") {
 const df4 = new DataFrame([{ age: 30, city: "Paris" }]);
 const dfDiag = $tbl.concat([df1, df4], { how: "diagonal" });
 if (dfDiag.height !== 2) throw new Error("Diagonal concat height mismatch");
-const collectedDiag = dfDiag.collect() as any[];
+const collectedDiag = dfDiag.to_dicts() as any[];
 if (collectedDiag[0].age !== null || collectedDiag[1].name !== null || collectedDiag[1].city !== "Paris") {
     throw new Error("Diagonal concat values mismatch");
 }
@@ -46,7 +46,7 @@ if (!didThrow) throw new Error("Expected horizontal strict check to throw on hei
 
 const dfHorizPadded = $tbl.concat([dfHorizShort, dfHorizTall], { how: "horizontal", horizontal: { strict: false } });
 if (dfHorizPadded.height !== 2) throw new Error("Padded horizontal concat should have height of tallest DataFrame");
-const collectedHorizPadded = dfHorizPadded.collect() as any[];
+const collectedHorizPadded = dfHorizPadded.to_dicts() as any[];
 if (collectedHorizPadded[0].val !== "X" || collectedHoriz[0].age !== 25) {
     // Wait, let's verify collectedHorizPadded values:
     // dfHorizShort has val="X", dfHorizTall has other=10, 20
@@ -63,22 +63,22 @@ if (collectedHorizPadded[1].val !== null || collectedHorizPadded[1].other !== 20
 // 5. vstack and hstack wrappers
 const dfV1 = df1.vstack(df2);
 if (dfV1.height !== 2) throw new Error("vstack with DataFrame height mismatch");
-if (dfV1.collect()[1].name !== "Bob") throw new Error("vstack with DataFrame value mismatch");
+if (dfV1.to_dicts()[1].name !== "Bob") throw new Error("vstack with DataFrame value mismatch");
 
 const dfV2 = df1.vstack([df2]);
 if (dfV2.height !== 2) throw new Error("vstack with array of DataFrames height mismatch");
 
 const dfV3 = df1.vstack([{ id: 2, name: "Bob" }]);
 if (dfV3.height !== 2) throw new Error("vstack with raw row objects height mismatch");
-if (dfV3.collect()[1].name !== "Bob") throw new Error("vstack with raw row objects value mismatch");
+if (dfV3.to_dicts()[1].name !== "Bob") throw new Error("vstack with raw row objects value mismatch");
 
 const dfH1 = df1.hstack(df3);
 if (dfH1.height !== 1) throw new Error("hstack with DataFrame height mismatch");
-if ((dfH1.collect() as any[])[0].age !== 25) throw new Error("hstack with DataFrame value mismatch");
+if ((dfH1.to_dicts() as any[])[0].age !== 25) throw new Error("hstack with DataFrame value mismatch");
 
 const dfH2 = df1.hstack({ age: [25] });
 if (dfH2.height !== 1) throw new Error("hstack with columns object height mismatch");
-if ((dfH2.collect() as any[])[0].age !== 25) throw new Error("hstack with columns object value mismatch");
+if ((dfH2.to_dicts() as any[])[0].age !== 25) throw new Error("hstack with columns object value mismatch");
 
 // 5b. hstack options test
 let didThrowHStack = false;
@@ -93,29 +93,29 @@ if (!didThrowHStack) throw new Error("Expected hstack with strict=true to throw 
 
 const dfH3 = dfHorizShort.hstack(dfHorizTall, { strict: false });
 if (dfH3.height !== 2) throw new Error("Padded hstack should have height of tallest DataFrame");
-const collectedH3 = dfH3.collect() as any[];
+const collectedH3 = dfH3.to_dicts() as any[];
 if (collectedH3[0].val !== "X" || collectedH3[0].other !== 10) {
     throw new Error("Padded hstack row 0 mismatch");
 }
 
 // 6. Generalized concat input tests
 const dfGen1 = $tbl.concat(df1);
-if (dfGen1.height !== 1 || dfGen1.collect()[0].name !== "Alice") {
+if (dfGen1.height !== 1 || dfGen1.to_dicts()[0].name !== "Alice") {
     throw new Error("Generalized concat with single DataFrame failed");
 }
 
 const dfGen2 = df1.concat({ age: [25] }, { how: "horizontal" });
-if (dfGen2.height !== 1 || (dfGen2.collect() as any[])[0].age !== 25) {
+if (dfGen2.height !== 1 || (dfGen2.to_dicts() as any[])[0].age !== 25) {
     throw new Error("Generalized instance concat with columns object failed");
 }
 
 const dfGen3 = df1.concat([{ id: 2, name: "Bob" }], { how: "vertical" });
-if (dfGen3.height !== 2 || dfGen3.collect()[1].name !== "Bob") {
+if (dfGen3.height !== 2 || dfGen3.to_dicts()[1].name !== "Bob") {
     throw new Error("Generalized instance concat with raw row objects failed");
 }
 
 const dfGen4 = $tbl.concat([df1, { id: [2], name: ["Bob"] }], { how: "diagonal" });
-if (dfGen4.height !== 2 || dfGen4.collect()[1].name !== "Bob") {
+if (dfGen4.height !== 2 || dfGen4.to_dicts()[1].name !== "Bob") {
     throw new Error("Generalized top-level concat with mixed items failed");
 }
 

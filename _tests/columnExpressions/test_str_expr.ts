@@ -73,7 +73,7 @@ try {
         $tbl.col("phrase").str.starts_with("Frame").alias("starts_with_frame"),
         $tbl.col("phrase").str.replace("is", "was").alias("replaced"),
         $tbl.col("phrase").str.replace_all("e", "3").alias("replaced_all")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.log("Coerced Expr.str results:");
     console.dir(projected, { depth: null });
@@ -169,7 +169,7 @@ try {
         $tbl.col("upper_str").str.to_lowercase().alias("to_lower"),
         $tbl.col("lower_str").str.to_uppercase().alias("to_upper"),
         $tbl.col("title_str").str.to_titlecase().alias("to_title")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.log("Casting and parsing results:");
     console.dir(castProjected, { depth: null });

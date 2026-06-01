@@ -11,7 +11,7 @@ const df = new DataFrame([
 
 // 1. Sort by age ascending (nulls last by default)
 const dfSortedAsc = df.sort({ by: "age", descending: false });
-const collectedAsc = dfSortedAsc.collect();
+const collectedAsc = dfSortedAsc.to_dicts();
 if (
     collectedAsc[0].name !== "Bob" || // age 25
     collectedAsc[1].name !== "Alice" || // age 30
@@ -23,7 +23,7 @@ if (
 
 // 2. Sort by age descending (nulls last by default)
 const dfSortedDesc = df.sort({ by: "age", descending: true });
-const collectedDesc = dfSortedDesc.collect();
+const collectedDesc = dfSortedDesc.to_dicts();
 if (
     collectedDesc[0].name !== "Dave" || // age 35
     collectedDesc[1].name !== "Alice" || // age 30
@@ -35,7 +35,7 @@ if (
 
 // 3. Sort by age ascending, nulls first (nullsLast: false)
 const dfNullsFirst = df.sort({ by: "age", descending: false, nullsLast: false });
-const collectedNullsFirst = dfNullsFirst.collect();
+const collectedNullsFirst = dfNullsFirst.to_dicts();
 if (
     collectedNullsFirst[0].name !== "Charlie" || // age null
     collectedNullsFirst[1].name !== "Bob" ||
@@ -52,7 +52,7 @@ const dfCustom = df.sort({
         name: (a: string, b: string) => a.length - b.length
     }
 });
-const collectedCustom = dfCustom.collect();
+const collectedCustom = dfCustom.to_dicts();
 if (
     collectedCustom[0].name !== "Bob" || // length 3
     collectedCustom[1].name !== "Dave" || // length 4

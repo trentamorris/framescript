@@ -1,4 +1,4 @@
-import { ColumnExpr, resolveColumnSelectors } from "../columnExpressions"
+import { ColumnExpr, resolveColumnSelectors, ALL_COLUMNS_MARKER } from "../columnExpressions"
 import { GroupedData } from "./grouped/grouped"
 import type { IExpr, ColumnData, ColumnDict, DataFrameColumns, ConcatOptions, ConcatItem, HorizontalConcatOptions } from "../types"
 import type { JoinType, LimitPosition, GroupMap } from "./types"
@@ -8,7 +8,6 @@ import { concat } from "../functions/concat"
 import { KEY_SEPARATOR } from "./constants"
 import {
     resolveWindowExpr,
-    getRowJoinKeys,
     rowsToColumns,
     columnsToRows,
     inferColumnType
@@ -104,8 +103,12 @@ export class DataFrame<T extends Record<string, any> = any> {
         return this._schema;
     }
 
-    collect(): T[] {
+    to_dicts(): T[] {
         return columnsToRows(this._columns, this._height);
+    }
+
+    to_dict(): DataFrameColumns<T> {
+        return { ...this._columns };
     }
 
     get columns(): string[] {
@@ -243,20 +246,36 @@ export class DataFrame<T extends Record<string, any> = any> {
             }
         }
 
-        for (let i = 0; i < len; i++) {
-            const vals = new Array(keysStr.length);
-            for (let j = 0; j < keysStr.length; j++) {
-                const val = this._columns[keysStr[j]][i];
-                vals[j] = val == null ? "" : String(val);
-            }
-            const hash = vals.join(KEY_SEPARATOR);
+        if (keysLen === 1) {
+            const singleKey = keysStr[0];
+            const col = this._columns[singleKey];
+            for (let i = 0; i < len; i++) {
+                const val = col[i];
+                const hash = val == null ? "" : String(val);
 
-            let group = groups.get(hash);
-            if (group === undefined) {
-                group = [];
-                groups.set(hash, group);
+                let group = groups.get(hash);
+                if (group === undefined) {
+                    group = [];
+                    groups.set(hash, group);
+                }
+                group.push(i);
             }
-            group.push(i);
+        } else {
+            for (let i = 0; i < len; i++) {
+                const vals = new Array(keysLen);
+                for (let j = 0; j < keysLen; j++) {
+                    const val = this._columns[keysStr[j]][i];
+                    vals[j] = val == null ? "" : String(val);
+                }
+                const hash = vals.join(KEY_SEPARATOR);
+
+                let group = groups.get(hash);
+                if (group === undefined) {
+                    group = [];
+                    groups.set(hash, group);
+                }
+                group.push(i);
+            }
         }
 
         const allKeys = Object.keys(this._columns) as (keyof T)[];
@@ -296,93 +315,138 @@ export class DataFrame<T extends Record<string, any> = any> {
             }
         }
 
-        const leftData = columnsToRows(this._columns, this._height);
-        const rightData = other.collect();
         const [leftSuffix, rightSuffix] = suffixes;
 
         const leftKeys = Object.keys(this._columns);
         const rightKeys = Object.keys(other._columns);
-        const rightKeySet = new Set(rightKeys);
-        const leftKeySet = new Set(leftKeys);
         const joinKeySet = new Set(joinKeys as string[]);
 
         const leftLen = leftKeys.length;
-        const leftMap: [string, string][] = new Array(leftLen);
-        for (let i = 0; i < leftLen; i++) {
-            const k = leftKeys[i];
-            const mappedName = (rightKeySet.has(k) && !joinKeySet.has(k)) ? `${k}${leftSuffix}` : k;
-            leftMap[i] = [k, mappedName];
+        const rightLen = rightKeys.length;
+
+        const getColumnHashAt = (columns: ColumnDict, idx: number): string | null => {
+            const len = joinKeys.length;
+            if (len === 1) {
+                const val = columns[joinKeys[0] as string][idx];
+                return val == null ? null : String(val);
+            }
+            const vals = new Array(len);
+            for (let i = 0; i < len; i++) {
+                const val = columns[joinKeys[i] as string][idx];
+                if (val == null) return null;
+                vals[i] = String(val);
+            }
+            return vals.join(KEY_SEPARATOR);
+        };
+
+        const rightHash = new Map<string, number[]>();
+        const rightHeight = other._height;
+        const rightCols = other._columns;
+
+        for (let i = 0; i < rightHeight; i++) {
+            const hash = getColumnHashAt(rightCols, i);
+            if (hash === null) continue;
+            let list = rightHash.get(hash);
+            if (list === undefined) {
+                list = [];
+                rightHash.set(hash, list);
+            }
+            list.push(i);
         }
 
-        const rightMap: [string, string][] = [];
-        const rightLen = rightKeys.length;
+        const leftHeight = this._height;
+        const leftCols = this._columns;
+
+        const leftIndices: number[] = [];
+        const rightIndices: (number | null)[] = [];
+
+        const trackRight = how === "outer" || how === "right";
+        const matchedRightIndices = trackRight ? new Set<number>() : null;
+
+        for (let i = 0; i < leftHeight; i++) {
+            const hash = getColumnHashAt(leftCols, i);
+            const matches = hash === null ? undefined : rightHash.get(hash);
+
+            if (matches === undefined) {
+                if (how === "left" || how === "outer") {
+                    leftIndices.push(i);
+                    rightIndices.push(null);
+                }
+            } else {
+                for (let m = 0; m < matches.length; m++) {
+                    const rIdx = matches[m];
+                    if (trackRight) {
+                        matchedRightIndices!.add(rIdx);
+                    }
+                    leftIndices.push(i);
+                    rightIndices.push(rIdx);
+                }
+            }
+        }
+
+        if (trackRight) {
+            for (let j = 0; j < rightHeight; j++) {
+                if (!matchedRightIndices!.has(j)) {
+                    leftIndices.push(-1);
+                    rightIndices.push(j);
+                }
+            }
+        }
+
+        const outHeight = leftIndices.length;
+        const newColumns: ColumnDict = {};
+        const outSchema: Record<string, DataType> = {};
+
+        for (let i = 0; i < leftLen; i++) {
+            const k = leftKeys[i];
+            const mappedName = (k in other._columns && !joinKeySet.has(k)) ? `${k}${leftSuffix}` : k;
+
+            const leftCol = this._columns[k];
+            const isJoinKey = joinKeySet.has(k);
+
+            const outCol = new Array(outHeight);
+            if (isJoinKey) {
+                const rightCol = other._columns[k];
+                for (let r = 0; r < outHeight; r++) {
+                    const leftIdx = leftIndices[r];
+                    if (leftIdx !== -1) {
+                        outCol[r] = leftCol[leftIdx];
+                    } else {
+                        const rightIdx = rightIndices[r];
+                        outCol[r] = rightIdx !== null ? rightCol[rightIdx] : null;
+                    }
+                }
+            } else {
+                for (let r = 0; r < outHeight; r++) {
+                    const leftIdx = leftIndices[r];
+                    outCol[r] = leftIdx !== -1 ? leftCol[leftIdx] : null;
+                }
+            }
+            newColumns[mappedName] = outCol;
+            if (this._schema[k]) {
+                outSchema[mappedName] = this._schema[k];
+            }
+        }
+
         for (let i = 0; i < rightLen; i++) {
             const k = rightKeys[i];
             if (!joinKeySet.has(k)) {
-                const mappedName = leftKeySet.has(k) ? `${k}${rightSuffix}` : k;
-                rightMap.push([k, mappedName]);
-            }
-        }
+                const mappedName = k in this._columns ? `${k}${rightSuffix}` : k;
+                const rightCol = other._columns[k];
 
-        const rightHash = new Map<string, U[]>();
-        let uniqueNullId = 0;
-        for (let i = 0; i < rightData.length; i++) {
-            const rRow = rightData[i] as any;
-            const { hash, hasNull } = getRowJoinKeys(rRow, joinKeys);
-            const finalHash = hasNull ? `__null_key_${uniqueNullId++}__` : hash;
-
-            let group = rightHash.get(finalHash);
-            if (!group) { group = []; rightHash.set(finalHash, group); }
-            group.push(rRow);
-        }
-
-        const result: any[] = [];
-        const consumedRightKeys = new Set<string>();
-
-        for (let i = 0; i < leftData.length; i++) {
-            const lRow = leftData[i] as any;
-            const { hash, hasNull } = getRowJoinKeys(lRow, joinKeys);
-            const matches = hasNull ? undefined : rightHash.get(hash);
-
-            if (!matches) {
-                if (how === "left" || how === "outer") {
-                    const merged: any = {};
-                    for (let k = 0; k < leftMap.length; k++) merged[leftMap[k][1]] = lRow[leftMap[k][0]];
-                    for (let k = 0; k < rightMap.length; k++) merged[rightMap[k][1]] = null;
-                    result.push(merged);
+                const outCol = new Array(outHeight);
+                for (let r = 0; r < outHeight; r++) {
+                    const rightIdx = rightIndices[r];
+                    outCol[r] = rightIdx !== null ? rightCol[rightIdx] : null;
                 }
-                continue;
-            }
-
-            if (how === "outer" || how === "right") consumedRightKeys.add(hash);
-            for (let m = 0; m < matches.length; m++) {
-                const rRow = matches[m] as any;
-                const merged: any = {};
-
-                for (let k = 0; k < leftMap.length; k++) merged[leftMap[k][1]] = lRow[leftMap[k][0]];
-                for (let k = 0; k < rightMap.length; k++) merged[rightMap[k][1]] = rRow[rightMap[k][0]];
-                result.push(merged);
-            }
-        }
-
-        if (how === "outer" || how === "right") {
-            for (const [hash, matches] of rightHash.entries()) {
-                if (!consumedRightKeys.has(hash)) {
-                    for (let m = 0; m < matches.length; m++) {
-                        const rRow = matches[m] as any;
-                        const merged: any = {};
-                        for (let k = 0; k < leftMap.length; k++) {
-                            const originalKey = leftMap[k][0];
-                            merged[leftMap[k][1]] = joinKeySet.has(originalKey) ? rRow[originalKey] : null;
-                        }
-                        for (let k = 0; k < rightMap.length; k++) merged[rightMap[k][1]] = rRow[rightMap[k][0]];
-                        result.push(merged);
-                    }
+                newColumns[mappedName] = outCol;
+                if (other._schema[k]) {
+                    outSchema[mappedName] = other._schema[k];
                 }
             }
         }
 
-        return new DataFrame<R>(result as any);
+        return new DataFrame<R>(newColumns, outSchema, outHeight);
     }
 
     limit(n: number, options: { offset?: number, from?: LimitPosition } = {}): DataFrame<T> {
@@ -451,43 +515,78 @@ export class DataFrame<T extends Record<string, any> = any> {
             throw new Error(`Pivot values key "${valKey}" does not exist in the DataFrame.`);
         }
 
-        const groups = new Map<string, any>();
+        // 1. Find all unique group keys and group indices
+        const groups = new Map<string, { firstIdx: number; indices: number[] }>();
         const colNames = new Set<string>();
 
-        for (let i = 0; i < this._height; i++) {
-            const vals = new Array(indexStr.length);
-            for (let j = 0; j < indexStr.length; j++) {
+        const height = this._height;
+        const pivotCol = this._columns[colKey];
+        const valCol = this._columns[valKey];
+
+        for (let i = 0; i < height; i++) {
+            const vals = new Array(indexLen);
+            for (let j = 0; j < indexLen; j++) {
                 const val = this._columns[indexStr[j]][i];
                 vals[j] = val == null ? "" : String(val);
             }
             const rowKey = vals.join(KEY_SEPARATOR);
 
-            const pivotColName = String(this._columns[colKey][i]);
+            const pivotColName = String(pivotCol[i]);
             colNames.add(pivotColName);
 
-            let groupedRow = groups.get(rowKey);
-            if (groupedRow === undefined) {
-                groupedRow = {};
-                for (let j = 0; j < indexLen; j++) {
-                    const k = indexStr[j];
-                    groupedRow[k] = this._columns[k][i];
-                }
-                groups.set(rowKey, groupedRow);
+            let group = groups.get(rowKey);
+            if (group === undefined) {
+                group = { firstIdx: i, indices: [] };
+                groups.set(rowKey, group);
             }
-
-            groupedRow[pivotColName] = this._columns[valKey][i];
+            group.indices.push(i);
         }
 
-        const result = Array.from(groups.values());
+        const outHeight = groups.size;
+        const newColumns: Record<string, any[]> = {};
+        const outSchema: Record<string, DataType> = {};
+
+        // Allocate arrays for index columns
+        for (let j = 0; j < indexLen; j++) {
+            const k = indexStr[j];
+            newColumns[k] = new Array(outHeight);
+            if (this._schema[k]) {
+                outSchema[k] = this._schema[k];
+            }
+        }
+
+        // Allocate arrays for dynamic pivot columns
         const allCols = Array.from(colNames);
-
-        for (const row of result) {
-            for (const col of allCols) {
-                if (row[col] === undefined) row[col] = null;
-            }
+        const valType = this._schema[valKey] || DataTypeRegistry.Utf8;
+        for (let j = 0; j < allCols.length; j++) {
+            const colName = allCols[j];
+            newColumns[colName] = new Array(outHeight).fill(null);
+            outSchema[colName] = valType;
         }
 
-        return new DataFrame<U>(result as any);
+        // Populate values
+        let groupIdx = 0;
+        for (const group of groups.values()) {
+            const firstIdx = group.firstIdx;
+
+            // Set index column values
+            for (let j = 0; j < indexLen; j++) {
+                const k = indexStr[j];
+                newColumns[k][groupIdx] = this._columns[k][firstIdx];
+            }
+
+            // Set pivoted values
+            const indices = group.indices;
+            for (let k = 0; k < indices.length; k++) {
+                const idx = indices[k];
+                const pivotColName = String(pivotCol[idx]);
+                newColumns[pivotColName][groupIdx] = valCol[idx];
+            }
+
+            groupIdx++;
+        }
+
+        return new DataFrame<U>(newColumns, outSchema, outHeight);
     }
 
     rename(mapping?: Partial<Record<keyof T, string>>): DataFrame<any> {
@@ -510,6 +609,21 @@ export class DataFrame<T extends Record<string, any> = any> {
         return new DataFrame(newColumns, outSchema, this._height);
     }
 
+    reverse(): DataFrame<T> {
+        if (this._height === 0) return this;
+
+        const newColumns: ColumnDict = {};
+        const keys = Object.keys(this._columns);
+        const len = keys.length;
+
+        for (let i = 0; i < len; i++) {
+            const key = keys[i];
+            newColumns[key] = (this._columns[key] as any).slice().reverse();
+        }
+
+        return new DataFrame<T>(newColumns, this._schema, this._height);
+    }
+
     get schema(): Record<string, DataType> {
         return this._schema;
     }
@@ -521,35 +635,25 @@ export class DataFrame<T extends Record<string, any> = any> {
         const allKeys = Object.keys(this._columns);
         const expandedExprs = resolveColumnSelectors(exprs, allKeys);
 
-        const seenNames = new Set<string>();
+        const newColumns: ColumnDict = {};
+        const outSchema: Record<string, DataType> = {};
+
         for (const expr of expandedExprs) {
-            const targetKey = expr.outputName || (expr as any).colName || "*";
-            if (seenNames.has(targetKey)) {
+            const targetKey = expr.outputName || (expr as any).colName || ALL_COLUMNS_MARKER;
+
+            if (targetKey in newColumns) {
                 throw new Error(`Duplicate column selection: "${targetKey}" is selected multiple times.`);
             }
-            seenNames.add(targetKey);
-        }
 
-        const newColumns: ColumnDict = {};
-        for (const expr of expandedExprs) {
-            const targetKey = expr.outputName || (expr as any).colName || "*";
-            if (expr.isWindow) {
-                newColumns[targetKey] = resolveWindowExpr(expr, this._columns, this._height);
-            } else {
-                newColumns[targetKey] = expr.evaluate(this._columns, this._height);
-            }
-        }
+            newColumns[targetKey] = expr.isWindow
+                ? resolveWindowExpr(expr, this._columns, this._height)
+                : expr.evaluate(this._columns, this._height);
 
-        const outSchema: Record<string, DataType> = {};
-        for (const expr of expandedExprs) {
-            const targetKey = expr.outputName || (expr as any).colName || "*";
             const originalKey = (expr as any).colName || targetKey;
             const isPureColSelector = expr instanceof ColumnExpr && expr.ops.length === 0;
-            if (isPureColSelector && this._schema[originalKey]) {
-                outSchema[targetKey] = this._schema[originalKey];
-            } else {
-                outSchema[targetKey] = inferColumnType(newColumns[targetKey]);
-            }
+            outSchema[targetKey] = (isPureColSelector && this._schema[originalKey])
+                ? this._schema[originalKey]
+                : inferColumnType(newColumns[targetKey]);
         }
 
         return new DataFrame<U>(newColumns, outSchema, this._height);
@@ -578,8 +682,7 @@ export class DataFrame<T extends Record<string, any> = any> {
         nullsLast?: boolean
         custom?: Partial<Record<keyof T, (a: any, b: any) => number>>
     }): DataFrame<T> {
-        if (!config || !config.by) return this;
-        if (this._height === 0) return new DataFrame<T>({}, this._schema, 0);
+        if (!config || !config.by || this._height === 0) return this;
 
         const { by, descending = false, nullsLast = true, custom } = config;
         const sortKeys = toValidArray(by);
@@ -689,47 +792,9 @@ export class DataFrame<T extends Record<string, any> = any> {
         if (this._height === 0) return new DataFrame<T>({}, this._schema, 0);
 
         const colsArr = toValidArray(columns);
-
-        if (colsArr.length === 0) {
-            const seen = new Set<string>();
-            const matchingIndices: number[] = [];
-            const colKeys = Object.keys(this._columns);
-            const numCols = colKeys.length;
-            const height = this._height;
-
-            for (let i = 0; i < height; i++) {
-                const vals = new Array(numCols);
-                for (let j = 0; j < numCols; j++) {
-                    const val = this._columns[colKeys[j]][i];
-                    vals[j] = val == null ? "" : String(val);
-                }
-                const hash = vals.join(KEY_SEPARATOR);
-                if (!seen.has(hash)) {
-                    seen.add(hash);
-                    matchingIndices.push(i);
-                }
-            }
-
-            const newHeight = matchingIndices.length;
-            const newColumns: Record<string, any[]> = {};
-            for (const key of Object.keys(this._columns)) {
-                const oldCol = this._columns[key];
-                const newCol = new Array(newHeight);
-                for (let i = 0; i < newHeight; i++) {
-                    newCol[i] = oldCol[matchingIndices[i]];
-                }
-                newColumns[key] = newCol;
-            }
-            return new DataFrame<T>(newColumns, this._schema, newHeight);
-        }
-
-        const seen = new Set<string>();
-        const matchingIndices: number[] = [];
-        const colsLen = colsArr.length;
-        const colsStr = new Array(colsLen);
-        for (let i = 0; i < colsLen; i++) {
-            colsStr[i] = String(colsArr[i]);
-        }
+        const colsStr = colsArr.length === 0
+            ? Object.keys(this._columns)
+            : colsArr.map(String);
 
         for (const colKey of colsStr) {
             if (!(colKey in this._columns)) {
@@ -737,17 +802,33 @@ export class DataFrame<T extends Record<string, any> = any> {
             }
         }
 
-        for (let i = 0; i < this._height; i++) {
-            const vals = new Array(colsStr.length);
-            for (let j = 0; j < colsStr.length; j++) {
-                const val = this._columns[colsStr[j]][i];
-                vals[j] = val == null ? "" : String(val);
-            }
-            const hash = vals.join(KEY_SEPARATOR);
+        const seen = new Set<string>();
+        const matchingIndices: number[] = [];
+        const colsLen = colsStr.length;
+        const height = this._height;
 
-            if (!seen.has(hash)) {
-                seen.add(hash);
-                matchingIndices.push(i);
+        if (colsLen === 1) {
+            const singleCol = this._columns[colsStr[0]];
+            for (let i = 0; i < height; i++) {
+                const val = singleCol[i];
+                const hash = val == null ? "" : String(val);
+                if (!seen.has(hash)) {
+                    seen.add(hash);
+                    matchingIndices.push(i);
+                }
+            }
+        } else {
+            for (let i = 0; i < height; i++) {
+                const vals = new Array(colsLen);
+                for (let j = 0; j < colsLen; j++) {
+                    const val = this._columns[colsStr[j]][i];
+                    vals[j] = val == null ? "" : String(val);
+                }
+                const hash = vals.join(KEY_SEPARATOR);
+                if (!seen.has(hash)) {
+                    seen.add(hash);
+                    matchingIndices.push(i);
+                }
             }
         }
 
@@ -772,20 +853,10 @@ export class DataFrame<T extends Record<string, any> = any> {
         valueName?: string;
     }): DataFrame<U> {
         const { idVars, valueVars, varName = "variable", valueName = "value" } = config;
-        const idVarsArr = toValidArray(idVars);
-        const valueVarsArr = toValidArray(valueVars);
-        const idVarsLen = idVarsArr.length;
-        const idVarsStr = new Array(idVarsLen);
-        for (let i = 0; i < idVarsLen; i++) {
-            idVarsStr[i] = String(idVarsArr[i]);
-        }
-        const valueVarsLen = valueVarsArr.length;
-        const valueVarsStr = new Array(valueVarsLen);
-        for (let i = 0; i < valueVarsLen; i++) {
-            valueVarsStr[i] = String(valueVarsArr[i]);
-        }
-        const vVarLen = valueVarsArr.length;
-        const idVarLen = idVarsArr.length;
+        const idVarsStr = toValidArray(idVars).map(String);
+        const valueVarsStr = toValidArray(valueVars).map(String);
+        const idVarsLen = idVarsStr.length;
+        const valueVarsLen = valueVarsStr.length;
 
         for (const idKey of idVarsStr) {
             if (!(idKey in this._columns)) {
@@ -798,10 +869,10 @@ export class DataFrame<T extends Record<string, any> = any> {
             }
         }
 
-        const newHeight = this._height * vVarLen;
+        const newHeight = this._height * valueVarsLen;
 
         const newColumns: Record<string, any[]> = {};
-        for (let k = 0; k < idVarLen; k++) {
+        for (let k = 0; k < idVarsLen; k++) {
             newColumns[idVarsStr[k]] = new Array(newHeight);
         }
         newColumns[varName] = new Array(newHeight);
@@ -809,10 +880,10 @@ export class DataFrame<T extends Record<string, any> = any> {
 
         let outIdx = 0;
         for (let i = 0; i < this._height; i++) {
-            for (let j = 0; j < vVarLen; j++) {
+            for (let j = 0; j < valueVarsLen; j++) {
                 const vVar = valueVarsStr[j];
 
-                for (let k = 0; k < idVarLen; k++) {
+                for (let k = 0; k < idVarsLen; k++) {
                     const idKey = idVarsStr[k];
                     newColumns[idKey][outIdx] = this._columns[idKey][i];
                 }
@@ -880,7 +951,7 @@ export class DataFrame<T extends Record<string, any> = any> {
 
         for (let j = 0; j < numEntries; j++) {
             const expr = expandedExprs[j];
-            const name = expr.outputName || (expr as any).colName || "*";
+            const name = expr.outputName || (expr as any).colName || ALL_COLUMNS_MARKER;
 
             if (expr.isWindow) {
                 newColumns[name] = resolveWindowExpr(expr, this._columns, this._height);

@@ -79,7 +79,7 @@ try {
         $tbl.col("val1").rand(42).alias("rand_seed_42_a"),
         $tbl.col("val1").rand(42).alias("rand_seed_42_b"),
         $tbl.col("val1").rand(99).alias("rand_seed_99")
-    ]).collect() as any[];
+    ]).to_dicts() as any[];
 
     console.dir(projected, { depth: null });
 
