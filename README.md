@@ -26,14 +26,14 @@ With optimized columnar storage under the hood, DFScript enables you to build cl
 Install DFScript using your favorite package manager:
 
 ```bash
-npm install dfscript
+npm install df-script
 ```
 
 Or with Yarn/PNPM:
 
 ```bash
-yarn add dfscript
-pnpm add dfscript
+yarn add df-script
+pnpm add df-script
 ```
 
 ---
@@ -43,7 +43,7 @@ pnpm add dfscript
 Here is a quick example showing how to load data, run expressions, perform aggregations, and compute rolling statistics.
 
 ```typescript
-import { $tbl } from "dfscript";
+import { $tbl } from "df-script";
 
 // 1. Create a DataFrame with structured data and automatic schema inference
 const df = $tbl.data([
@@ -230,7 +230,7 @@ Apply moving calculations over a fixed window size:
 You can optionally declare schemas to enforce precise data types and automatic type coercion during construction.
 
 ```typescript
-import { $tbl } from "dfscript";
+import { $tbl } from "df-script";
 
 const schema = {
   id: $tbl.DataType.Int32,
@@ -253,7 +253,7 @@ const df = $tbl.data(rawData, schema);
 
 ## 🧑‍💻 Contributing & Development
 
-We welcome contributions! Please make sure to review our [Developer Guidelines](file:///c:/Users/Ford/Trent/framescript/DEVELOPER_GUIDELINES.md) when writing code.
+We welcome contributions! Please make sure to review our [Developer Guidelines](DEVELOPER_GUIDELINES.md) when writing code.
 
 ### Running Project Tests
 DFScript has a comprehensive suite of unit tests. Run them using:
@@ -266,4 +266,4 @@ npx tsx _tests/run_all_project_tests.ts
 
 ## 📄 License
 
-DFScript is open-source software licensed under the [MIT License](file:///c:/Users/Ford/Trent/framescript/LICENSE).
+DFScript is open-source software licensed under the [MIT License](LICENSE).
