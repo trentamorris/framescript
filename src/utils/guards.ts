@@ -87,3 +87,44 @@ export function toValidBinary(v: unknown): Uint8Array | null {
     }
     return new Uint8Array(v as any);
 }
+
+const boolMap: Record<string, boolean> = {
+    true: true, "1": true, yes: true, y: true, on: true,
+    false: false, "0": false, no: false, n: false, off: false
+};
+
+export function tryParseBoolean(v: unknown): boolean | undefined {
+    if (typeof v === "boolean") return v;
+    if (v === 1) return true;
+    if (v === 0) return false;
+    if (typeof v !== "string") return undefined;
+    return boolMap[v.trim().toLowerCase()];
+}
+
+export function isJsonString(input: unknown, allowPrimitives = false): input is string {
+    if (typeof input !== "string") return false;
+    const s = input.trim();
+    if (s === "") return false;
+
+    if (!allowPrimitives) {
+        const isWrapped = (s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"));
+        if (!isWrapped) return false;
+    }
+
+    try {
+        JSON.parse(s);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export function safeJsonParse(input: unknown): unknown {
+    if (typeof input !== "string") return input;
+    try {
+        return JSON.parse(input);
+    } catch {
+        return input;
+    }
+}
+

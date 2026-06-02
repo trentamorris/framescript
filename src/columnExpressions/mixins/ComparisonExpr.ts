@@ -1,7 +1,22 @@
-import type { IExpr } from "../../types"
 import type { ExprConstructor } from "../types"
 import { derive, kleeneUnary, kleeneBinary } from "../ExprBase"
 import { isArrayOrTypedArray } from "../../utils"
+
+function getCacheKey(val: any): any {
+    if (val == null) {
+        return val;
+    }
+    if (val instanceof Date) {
+        return `d:${val.getTime()}`;
+    }
+    if (val instanceof Uint8Array) {
+        return `u:${val.toString()}`;
+    }
+    if (typeof val === "object" || typeof val === "function") {
+        return String(val);
+    }
+    return val;
+}
 
 export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
@@ -9,8 +24,8 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         between(lower: any, upper: any, closed: "both" | "left" | "right" | "none" = "both") {
             return derive(this, (vArray, columns) => {
                 const height = vArray.length;
-                const lResolved = this._resolve(lower, columns, height);
-                const uResolved = this._resolve(upper, columns, height);
+                const lResolved = (this as any)._resolve(lower, columns, height);
+                const uResolved = (this as any)._resolve(upper, columns, height);
                 const result = new Array(height);
 
                 const isLArray = isArrayOrTypedArray(lResolved);
@@ -70,11 +85,116 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return derive(this, kleeneBinary(this, val, (v, r) => v > r));
         }
 
+        has_nulls() {
+            return (this as any)._deriveAgg((v: any[]) => {
+                for (let i = 0; i < v.length; i++) {
+                    if (v[i] == null) return true;
+                }
+                return false;
+            });
+        }
+
+        is_close(
+            other: any,
+            options: {
+                abs_tol?: number;
+                rel_tol?: number;
+                nans_equal?: boolean;
+            } = {}
+        ) {
+            const { abs_tol = 1e-8, rel_tol = 1e-8, nans_equal = false } = options;
+            return derive(this, (vArray, columns) => {
+                const height = vArray.length;
+                const otherVal = (this as any)._resolve(other, columns, height);
+                const isOtherArray = isArrayOrTypedArray(otherVal);
+                const result = new Array(height);
+                for (let i = 0; i < height; i++) {
+                    const v = vArray[i];
+                    const o = isOtherArray ? otherVal[i] : otherVal;
+                    if (v == null || o == null) {
+                        result[i] = null;
+                    } else if (Number.isNaN(v) || Number.isNaN(o)) {
+                        if (nans_equal && Number.isNaN(v) && Number.isNaN(o)) {
+                            result[i] = true;
+                        } else {
+                            result[i] = false;
+                        }
+                    } else if (!Number.isFinite(v) || !Number.isFinite(o)) {
+                        result[i] = (v === o);
+                    } else {
+                        const absDiff = Math.abs(v - o);
+                        const threshold = Math.max(rel_tol * Math.max(Math.abs(v), Math.abs(o)), abs_tol);
+                        result[i] = absDiff <= threshold;
+                    }
+                }
+                return result;
+            });
+        }
+
+        is_duplicated() {
+            return derive(this, (vArray) => {
+                const height = vArray.length;
+                const counts = new Map<any, number>();
+                const keys = new Array(height);
+                for (let i = 0; i < height; i++) {
+                    const k = getCacheKey(vArray[i]);
+                    keys[i] = k;
+                    counts.set(k, (counts.get(k) || 0) + 1);
+                }
+                const result = new Array(height);
+                for (let i = 0; i < height; i++) {
+                    result[i] = (counts.get(keys[i]) || 0) > 1;
+                }
+                return result;
+            });
+        }
+
+        is_empty(options: { ignoreNulls?: boolean } = {}) {
+            const { ignoreNulls = false } = options;
+            return derive(this, kleeneUnary((v) => {
+                if (typeof v === "string") {
+                    return v.length === 0;
+                }
+                if (isArrayOrTypedArray(v)) {
+                    if (ignoreNulls) {
+                        const len = (v as any).length;
+                        let nonNullCount = 0;
+                        for (let i = 0; i < len; i++) {
+                            if ((v as any)[i] != null) {
+                                nonNullCount++;
+                            }
+                        }
+                        return nonNullCount === 0;
+                    }
+                    return (v as any).length === 0;
+                }
+                return null;
+            }));
+        }
+
         is_finite() {
             return derive(this, kleeneUnary(Number.isFinite));
         }
 
-        is_in(values: any[] | IExpr) {
+        is_first_distinct() {
+            return derive(this, (vArray) => {
+                const height = vArray.length;
+                const seen = new Set();
+                const result = new Array(height);
+                for (let i = 0; i < height; i++) {
+                    const k = getCacheKey(vArray[i]);
+                    if (seen.has(k)) {
+                        result[i] = false;
+                    } else {
+                        seen.add(k);
+                        result[i] = true;
+                    }
+                }
+                return result;
+            });
+        }
+
+        is_in(values: any[] | any) {
             return derive(this, (vArray, columns) => {
                 const height = vArray.length;
                 const result = new Array(height);
@@ -86,16 +206,28 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                             result[i] = null;
                         } else {
                             const candidates = resolved[i];
-                            const set = isArrayOrTypedArray(candidates) ? new Set(candidates) : new Set([candidates]);
-                            result[i] = set.has(v);
+                            const set = new Set();
+                            if (isArrayOrTypedArray(candidates)) {
+                                const cLen = candidates.length;
+                                for (let j = 0; j < cLen; j++) {
+                                    set.add(getCacheKey(candidates[j]));
+                                }
+                            } else {
+                                set.add(getCacheKey(candidates));
+                            }
+                            result[i] = set.has(getCacheKey(v));
                         }
                     }
                 } else {
                     const arr = isArrayOrTypedArray(values) ? values : [];
-                    const set = new Set(arr);
+                    const set = new Set();
+                    const arrLen = arr.length;
+                    for (let j = 0; j < arrLen; j++) {
+                        set.add(getCacheKey(arr[j]));
+                    }
                     for (let i = 0; i < height; i++) {
                         const v = vArray[i];
-                        result[i] = v == null ? null : set.has(v);
+                        result[i] = v == null ? null : set.has(getCacheKey(v));
                     }
                 }
                 return result;
@@ -104,6 +236,35 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
 
         is_infinite() {
             return derive(this, kleeneUnary((v) => v === Infinity || v === -Infinity));
+        }
+
+        is_last_distinct() {
+            return derive(this, (vArray) => {
+                const height = vArray.length;
+                const seen = new Set();
+                const result = new Array(height);
+                for (let i = height - 1; i >= 0; i--) {
+                    const k = getCacheKey(vArray[i]);
+                    if (seen.has(k)) {
+                        result[i] = false;
+                    } else {
+                        seen.add(k);
+                        result[i] = true;
+                    }
+                }
+                return result;
+            });
+        }
+
+        is_n_distinct(n: number) {
+            return (this as any)._deriveAgg((v: any[]) => {
+                const set = new Set();
+                const len = v.length;
+                for (let i = 0; i < len; i++) {
+                    set.add(getCacheKey(v[i]));
+                }
+                return set.size === n;
+            });
         }
 
         is_nan() {
@@ -131,6 +292,24 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                 const result = new Array(height);
                 for (let i = 0; i < height; i++) {
                     result[i] = vArray[i] == null;
+                }
+                return result;
+            });
+        }
+
+        is_unique() {
+            return derive(this, (vArray) => {
+                const height = vArray.length;
+                const counts = new Map<any, number>();
+                const keys = new Array(height);
+                for (let i = 0; i < height; i++) {
+                    const k = getCacheKey(vArray[i]);
+                    keys[i] = k;
+                    counts.set(k, (counts.get(k) || 0) + 1);
+                }
+                const result = new Array(height);
+                for (let i = 0; i < height; i++) {
+                    result[i] = counts.get(keys[i]) === 1;
                 }
                 return result;
             });
@@ -173,7 +352,7 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             });
         }
 
-        not_in(values: any[] | IExpr) {
+        not_in(values: any[] | any) {
             return derive(this, (vArray, columns) => {
                 const height = vArray.length;
                 const result = new Array(height);
@@ -185,16 +364,28 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                             result[i] = null;
                         } else {
                             const candidates = resolved[i];
-                            const set = isArrayOrTypedArray(candidates) ? new Set(candidates) : new Set([candidates]);
-                            result[i] = !set.has(v);
+                            const set = new Set();
+                            if (isArrayOrTypedArray(candidates)) {
+                                const cLen = candidates.length;
+                                for (let j = 0; j < cLen; j++) {
+                                    set.add(getCacheKey(candidates[j]));
+                                }
+                            } else {
+                                set.add(getCacheKey(candidates));
+                            }
+                            result[i] = !set.has(getCacheKey(v));
                         }
                     }
                 } else {
                     const arr = isArrayOrTypedArray(values) ? values : [];
-                    const set = new Set(arr);
+                    const set = new Set();
+                    const arrLen = arr.length;
+                    for (let j = 0; j < arrLen; j++) {
+                        set.add(getCacheKey(arr[j]));
+                    }
                     for (let i = 0; i < height; i++) {
                         const v = vArray[i];
-                        result[i] = v == null ? null : !set.has(v);
+                        result[i] = v == null ? null : !set.has(getCacheKey(v));
                     }
                 }
                 return result;

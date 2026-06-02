@@ -1,5 +1,5 @@
 import type { IExpr } from "../../types"
-import type { ExprConstructor } from "../types"
+import type { ExprConstructor, RandomOptions } from "../types"
 import { derive, kleeneUnary, kleeneBinary } from "../ExprBase"
 import { clamp, mulberry32 } from "../../utils"
 
@@ -122,9 +122,28 @@ export const ArithmeticExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return derive(this, kleeneUnary((v) => v * (Math.PI / 180)));
         }
 
+        rand(seed?: number, { min = 0, max = 1, integer = false }: RandomOptions = {}) {
+            return derive(this, (vArray) => {
+                const len = vArray.length;
+                const out = new Float64Array(len);
+                const rnd = seed !== undefined ? mulberry32(seed) : Math.random;
+                const range = max - min;
+
+                for (let i = 0; i < len; i++) {
+                    const raw = rnd();
+                    out[i] = integer ? Math.floor(raw * (range + 1)) + min : raw * range + min;
+                }
+                return out;
+            });
+        }
+
         round(decimals: number = 0) {
             const factor = Math.pow(10, decimals);
             return derive(this, kleeneUnary((v) => Math.round(v * factor) / factor));
+        }
+
+        sign() {
+            return derive(this, kleeneUnary(Math.sign));
         }
 
         sin() {
@@ -133,10 +152,6 @@ export const ArithmeticExpr = <TBase extends ExprConstructor>(Base: TBase) => {
 
         sinh() {
             return derive(this, kleeneUnary(Math.sinh));
-        }
-
-        sign() {
-            return derive(this, kleeneUnary(Math.sign));
         }
 
         sqrt() {
@@ -157,24 +172,6 @@ export const ArithmeticExpr = <TBase extends ExprConstructor>(Base: TBase) => {
 
         trunc() {
             return derive(this, kleeneUnary(Math.trunc));
-        }
-
-        rand(seed?: number) {
-            return derive(this, (vArray) => {
-                const len = vArray.length;
-                const out = new Float64Array(len);
-                if (seed !== undefined) {
-                    const rnd = mulberry32(seed);
-                    for (let i = 0; i < len; i++) {
-                        out[i] = rnd();
-                    }
-                } else {
-                    for (let i = 0; i < len; i++) {
-                        out[i] = Math.random();
-                    }
-                }
-                return out;
-            });
         }
     }
 }

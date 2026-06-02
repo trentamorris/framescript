@@ -1,6 +1,6 @@
 import { ColumnExpr } from "../ColumnExpr";
-import { lit } from "./lit";
 import type { IExpr, Scalar } from "../../types";
+import { isArrayOrTypedArray } from "../../utils";
 
 type WhenArg = IExpr | Scalar;
 
@@ -44,26 +44,19 @@ export class WhenThen extends ColumnExpr<any> {
         this.ops.push((_, columns) => {
             const height = _.length;
 
-            const resolveArg = (arg: any): IExpr => {
-                if (typeof arg === "string") {
-                    if (arg in columns) {
-                        return new ColumnExpr(arg);
-                    }
-                    return lit(arg);
-                }
+            const evaluateArg = (arg: any): any => {
                 if (arg && typeof arg === "object" && "evaluate" in arg) {
-                    return arg as IExpr;
+                    return (arg as IExpr).evaluate(columns, height);
                 }
-                return lit(arg);
+                if (typeof arg === "string" && (arg in columns)) {
+                    return columns[arg];
+                }
+                return arg;
             };
 
-            const resolvedPreds = this.predicates.map(resolveArg);
-            const resolvedVals = this.values.map(resolveArg);
-            const resolvedOtherwise = resolveArg(this.otherwiseValue);
-
-            const evaluatedPreds = resolvedPreds.map(p => p.evaluate(columns, height));
-            const evaluatedVals = resolvedVals.map(v => v.evaluate(columns, height));
-            const evaluatedOtherwise = resolvedOtherwise.evaluate(columns, height);
+            const evaluatedPreds = this.predicates.map(evaluateArg);
+            const evaluatedVals = this.values.map(evaluateArg);
+            const evaluatedOtherwise = evaluateArg(this.otherwiseValue);
 
             const result = new Array(height);
             const numConditions = evaluatedPreds.length;
@@ -71,14 +64,15 @@ export class WhenThen extends ColumnExpr<any> {
             for (let i = 0; i < height; i++) {
                 let matched = false;
                 for (let j = 0; j < numConditions; j++) {
-                    if (evaluatedPreds[j][i] === true) {
-                        result[i] = evaluatedVals[j][i];
+                    const predVal = isArrayOrTypedArray(evaluatedPreds[j]) ? evaluatedPreds[j][i] : evaluatedPreds[j];
+                    if (predVal === true) {
+                        result[i] = isArrayOrTypedArray(evaluatedVals[j]) ? evaluatedVals[j][i] : evaluatedVals[j];
                         matched = true;
                         break;
                     }
                 }
                 if (!matched) {
-                    result[i] = evaluatedOtherwise[i];
+                    result[i] = isArrayOrTypedArray(evaluatedOtherwise) ? evaluatedOtherwise[i] : evaluatedOtherwise;
                 }
             }
             return result;

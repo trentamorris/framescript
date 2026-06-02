@@ -81,28 +81,43 @@ export function sortList(arr: unknown, descending: boolean = false): any[] {
     return list;
 }
 
+const DEFAULT_STATS = { sum: null, count: 0, min: null, max: null, mean: null, variance: 0, std: 0, nullCount: 0, len: 0, hasNulls: false, isNumeric: false };
+
 export function getListStats(arr: unknown): {
     sum: number | null;
     count: number;
     min: any;
     max: any;
+    mean: number | null;
+    variance: number;
+    std: number;
+    nullCount: number;
+    len: number;
+    hasNulls: boolean;
+    isNumeric: boolean;
 } {
     if (!isArrayOrTypedArray(arr)) {
-        return { sum: null, count: 0, min: null, max: null };
+        return { ...DEFAULT_STATS };
     }
     const len = (arr as any).length;
     if (len === 0) {
-        return { sum: null, count: 0, min: null, max: null };
+        return { ...DEFAULT_STATS };
     }
 
-    let total = 0;
-    let count = 0;
     let minVal: any = null;
     let maxVal: any = null;
+    let count = 0;
+    let nullCount = 0;
+    let total = 0;
+    let mean = 0;
+    let M2 = 0;
 
     for (let i = 0; i < len; i++) {
         const val = (arr as any)[i];
-        if (val == null) continue;
+        if (val == null) {
+            nullCount++;
+            continue;
+        }
 
         if (minVal == null || val < minVal) minVal = val;
         if (maxVal == null || val > maxVal) maxVal = val;
@@ -111,59 +126,26 @@ export function getListStats(arr: unknown): {
         if (n !== null) {
             total += n;
             count++;
+            const delta = n - mean;
+            mean += delta / count;
+            const delta2 = n - mean;
+            M2 += delta * delta2;
         }
     }
+
+    const variance = count > 1 ? M2 / (count - 1) : 0;
 
     return {
         sum: count > 0 ? total : null,
         count,
         min: minVal,
-        max: maxVal
+        max: maxVal,
+        mean: count > 0 ? total / count : null,
+        variance,
+        std: Math.sqrt(variance),
+        nullCount,
+        len,
+        hasNulls: nullCount > 0,
+        isNumeric: count > 0 && count === (len - nullCount)
     };
-}
-
-export function getListMedian(arr: unknown): number | null {
-    if (!isArrayOfType(arr, "number", { allowNulls: true })) return null;
-
-    const len = (arr as any).length;
-    const nums: number[] = [];
-    for (let i = 0; i < len; i++) {
-        const val = (arr as any)[i];
-        if (val != null) {
-            nums.push(val);
-        }
-    }
-
-    if (nums.length === 0) return null;
-
-    nums.sort((a, b) => a - b);
-    const mid = Math.floor(nums.length / 2);
-    return nums.length % 2 !== 0
-        ? nums[mid]
-        : (nums[mid - 1] + nums[mid]) / 2;
-}
-
-export function getListMode(arr: unknown): any[] | null {
-    if (!isArrayOrTypedArray(arr)) return null;
-    const len = (arr as any).length;
-
-    const counts = new Map<any, number>();
-    let maxCount = 0;
-
-    for (let i = 0; i < len; i++) {
-        const val = (arr as any)[i];
-        if (val == null) continue;
-        const c = (counts.get(val) ?? 0) + 1;
-        counts.set(val, c);
-        if (c > maxCount) maxCount = c;
-    }
-
-    if (maxCount === 0) return [];
-
-    const modes: any[] = [];
-    for (const [val, c] of counts.entries()) {
-        if (c === maxCount) modes.push(val);
-    }
-
-    return sortList(modes);
 }

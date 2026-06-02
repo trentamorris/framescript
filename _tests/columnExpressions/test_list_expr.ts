@@ -55,6 +55,8 @@ try {
 
         // join
         $tbl.col("tags").list.join(", ").alias("joined_tags"),
+        $tbl.col("numbers").list.join("-").alias("joined_nums_default"),
+        $tbl.col("numbers").list.join("-", { ignoreNulls: true }).alias("joined_nums_ignore"),
 
         // sort
         $tbl.col("numbers").list.sort().alias("sorted_nums"),
@@ -65,6 +67,7 @@ try {
 
         // unique
         $tbl.col("tags").list.unique().alias("unique_tags"),
+        $tbl.col("tags").list.n_unique().alias("n_unique_tags"),
 
         // slice
         $tbl.col("numbers").list.slice(2, 3).alias("slice_nums"),
@@ -114,6 +117,8 @@ try {
     if (r0.has_orange !== false) throw new Error(`Expected has_orange false, got ${r0.has_orange}`);
 
     if (r0.joined_tags !== "apple, banana, apple, cherry") throw new Error(`Expected joined_tags, got ${r0.joined_tags}`);
+    if (r0.joined_nums_default !== "3-1-4-1-5-9-2--6-5") throw new Error(`Expected r0.joined_nums_default '3-1-4-1-5-9-2--6-5', got ${r0.joined_nums_default}`);
+    if (r0.joined_nums_ignore !== "3-1-4-1-5-9-2-6-5") throw new Error(`Expected r0.joined_nums_ignore '3-1-4-1-5-9-2-6-5', got ${r0.joined_nums_ignore}`);
 
     // sort checks (nulls go to the end)
     const expectedSort = [1, 1, 2, 3, 4, 5, 5, 6, 9, null];
@@ -137,6 +142,9 @@ try {
     // unique
     if (r0.unique_tags.length !== 3 || r0.unique_tags[0] !== "apple" || r0.unique_tags[1] !== "banana" || r0.unique_tags[2] !== "cherry") {
         throw new Error(`Expected unique_tags, got ${r0.unique_tags}`);
+    }
+    if (r0.n_unique_tags !== 3) {
+        throw new Error(`Expected n_unique_tags 3, got ${r0.n_unique_tags}`);
     }
 
     // slice
@@ -178,6 +186,8 @@ try {
     if (r1.get_idx_neg_2 !== 20) throw new Error(`Expected get_idx_neg_2 20, got ${r1.get_idx_neg_2}`);
     if (r1.first_tag !== "js") throw new Error(`Expected first_tag 'js', got ${r1.first_tag}`);
     if (r1.last_tag !== "ts") throw new Error(`Expected last_tag 'ts', got ${r1.last_tag}`);
+    if (r1.joined_nums_default !== "10--5-20-0") throw new Error(`Expected r1.joined_nums_default '10--5-20-0', got ${r1.joined_nums_default}`);
+    if (r1.joined_nums_ignore !== "10--5-20-0") throw new Error(`Expected r1.joined_nums_ignore '10--5-20-0', got ${r1.joined_nums_ignore}`);
 
     // gather / gather_every Row 1
     if (r1.gather_nums[0] !== 10 || r1.gather_nums[1] !== 20 || r1.gather_nums[2] !== 20) throw new Error("r1.gather_nums failed");
@@ -191,6 +201,7 @@ try {
     if (r1.typed_sum !== 4) throw new Error(`Expected r1.typed_sum 4, got ${r1.typed_sum}`);
     if (r1.coerced_sum !== 10) throw new Error(`Expected r1.coerced_sum 10, got ${r1.coerced_sum}`);
     if (r1.coerced_mean !== 10) throw new Error(`Expected r1.coerced_mean 10, got ${r1.coerced_mean}`);
+    if (r1.n_unique_tags !== 2) throw new Error(`Expected n_unique_tags 2, got ${r1.n_unique_tags}`);
 
     // Test null_on_oob = false throws
     let threwOob = false;

@@ -3,6 +3,7 @@ import { ColumnExpr } from "./ColumnExpr"
 import { ALL_COLUMNS_MARKER } from "./constants"
 
 export * from "./constants"
+export * from "./types"
 export * from "./ExprBase"
 export * from "./mixins/ArithmeticExpr"
 export * from "./mixins/LogicalExpr"

@@ -1,10 +1,11 @@
 import { DataFrame } from "../dataframe/dataframe"
 import { DataType, DataTypeRegistry } from "../datatypes"
 import { isTypedArray, isPlainObj, isArrayOfType, isArrayOrTypedArray } from "../utils"
-import type { ColumnDict, ConcatOptions, ConcatItem } from "../types"
+import type { ColumnDict, ConcatOptions, ConcatItem, RowRecord } from "../types"
+import { DataFrameError, SchemaError } from "../exceptions"
 export function normalizeToDataFrames(item: any, context: string, index: number): DataFrame<any>[] {
     if (item == null) {
-        throw new Error(`Invalid input to ${context} at index ${index}: item cannot be null or undefined.`);
+        throw new DataFrameError(`Invalid input to ${context} at index ${index}: item cannot be null or undefined.`);
     }
     if (item instanceof DataFrame) {
         return [item];
@@ -24,7 +25,7 @@ export function normalizeToDataFrames(item: any, context: string, index: number)
         const anyDF = isArrayOfType(item, DataFrame, { mode: "some" });
         for (let j = 0; j < item.length; j++) {
             if (anyDF ? !(item[j] instanceof DataFrame) : !isPlainObj(item[j])) {
-                throw new Error(anyDF
+                throw new DataFrameError(anyDF
                     ? `Invalid input to ${context} at index ${index}, sub-index ${j}: nested array must contain only DataFrame instances.`
                     : `Invalid input to ${context} at index ${index}, row ${j}: rows must be plain objects.`
                 );
@@ -32,15 +33,15 @@ export function normalizeToDataFrames(item: any, context: string, index: number)
         }
     }
 
-    throw new Error(`Invalid input to ${context} at index ${index}: expected DataFrame, row array, or column dictionary.`);
+    throw new DataFrameError(`Invalid input to ${context} at index ${index}: expected DataFrame, row array, or column dictionary.`);
 }
 
-export function concat<U extends Record<string, any> = any>(
+export function concat<U extends RowRecord = any>(
     rawItems: ConcatItem | ConcatItem[],
     options: ConcatOptions = {}
 ): DataFrame<U> {
     if (rawItems == null) {
-        throw new Error("Invalid input to concat: rawItems cannot be null or undefined.");
+        throw new DataFrameError("Invalid input to concat: rawItems cannot be null or undefined.");
     }
     const itemsArray = Array.isArray(rawItems) ? rawItems : [rawItems];
     const items: DataFrame<any>[] = [];
@@ -74,11 +75,11 @@ export function concat<U extends Record<string, any> = any>(
                 const currentKeys = Object.keys(currentDF._columns);
 
                 if (firstKeys.length !== currentKeys.length) {
-                    throw new Error(`[Strict Vertical] Column count mismatch at index ${i}.`);
+                    throw new DataFrameError(`[Strict Vertical] Column count mismatch at index ${i}.`);
                 }
                 for (let j = 0; j < firstKeys.length; j++) {
                     if (firstKeys[j] !== currentKeys[j]) {
-                        throw new Error(
+                        throw new DataFrameError(
                             `[Strict Vertical] Schema mismatch at position ${j} in DF ${i}. ` +
                             `Expected column "${firstKeys[j]}", but found "${currentKeys[j]}".`
                         );
@@ -86,7 +87,7 @@ export function concat<U extends Record<string, any> = any>(
                     const typeA = firstDF.schema[firstKeys[j]];
                     const typeB = currentDF.schema[firstKeys[j]];
                     if (typeA && typeB && !typeA.equals(typeB)) {
-                        throw new Error(`[Strict Type Check] Schema type mismatch for column "${firstKeys[j]}": expected ${typeA.name}, found ${typeB.name}.`);
+                        throw new SchemaError(`[Strict Type Check] Schema type mismatch for column "${firstKeys[j]}": expected ${typeA.name}, found ${typeB.name}.`);
                     }
                 }
             }
@@ -160,12 +161,12 @@ export function concat<U extends Record<string, any> = any>(
             for (let idx = 0; idx < items.length; idx++) {
                 const df = items[idx];
                 if (strict && df.height !== maxHeight) {
-                    throw new Error(`[Horizontal] Row count mismatch at index ${idx}. Expected ${maxHeight}, got ${df.height}. Set strict=false to allow padding.`);
+                    throw new DataFrameError(`[Horizontal] Row count mismatch at index ${idx}. Expected ${maxHeight}, got ${df.height}. Set strict=false to allow padding.`);
                 }
 
                 for (const key of Object.keys(df._columns)) {
                     if (allColNames.has(key)) {
-                        throw new Error(`[Horizontal] Duplicate column name "${key}" detected. Horizontal concat requires unique names.`);
+                        throw new DataFrameError(`[Horizontal] Duplicate column name "${key}" detected. Horizontal concat requires unique names.`);
                     }
                     allColNames.add(key);
                 }
@@ -221,7 +222,7 @@ export function concat<U extends Record<string, any> = any>(
                             colType = itemType;
                         } else {
                             if (!colType.equals(itemType)) {
-                                throw new Error(`[Strict Type Check] Schema type mismatch for column "${key}": expected ${colType.name}, found ${itemType.name}.`);
+                                throw new SchemaError(`[Strict Type Check] Schema type mismatch for column "${key}": expected ${colType.name}, found ${itemType.name}.`);
                             }
                         }
                     }

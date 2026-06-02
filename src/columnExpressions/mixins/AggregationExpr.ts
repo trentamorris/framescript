@@ -1,6 +1,8 @@
 import type { AggFn } from "../../types"
 import type { ExprConstructor } from "../types"
 import { derive } from "../ExprBase"
+import { ComputeError } from "../../exceptions"
+import { getListStats, isArrayOfType, isArrayOrTypedArray } from "../../utils"
 
 export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
@@ -51,24 +53,12 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         }
 
         avg() {
-            return this._deriveAgg(v => {
-                let sum = 0, count = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) { sum += v[i]; count++; }
-                }
-                return count ? sum / count : null;
-            });
+            return this._deriveAgg(v => getListStats(v).mean);
         }
 
         count(options: { includeNulls?: boolean } = {}) {
             if (options.includeNulls) return this._deriveAgg(v => v.length);
-            return this._deriveAgg(v => {
-                let count = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) count++;
-                }
-                return count;
-            });
+            return this._deriveAgg(v => getListStats(v).count);
         }
 
         first() {
@@ -80,13 +70,7 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         }
 
         max() {
-            return this._deriveAgg(v => {
-                let result = null;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null && (result === null || v[i] > result)) result = v[i];
-                }
-                return result;
-            });
+            return this._deriveAgg(v => getListStats(v).max);
         }
 
         mean() {
@@ -95,46 +79,75 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
 
         median() {
             return this._deriveAgg(v => {
-                const f: any[] = [];
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) f.push(v[i]);
+                if (!isArrayOfType(v, "number", { allowNulls: true })) return null;
+                const len = (v as any).length;
+                const nums: number[] = [];
+                for (let i = 0; i < len; i++) {
+                    const val = (v as any)[i];
+                    if (val != null) {
+                        nums.push(val);
+                    }
                 }
-                const fLen = f.length;
-                if (!fLen) return null;
-                f.sort((a, b) => a - b);
-                const mid = Math.floor(fLen / 2);
-                return fLen % 2 !== 0 ? f[mid] : (f[mid - 1] + f[mid]) / 2;
+                const numsLen = nums.length;
+                if (numsLen === 0) return null;
+                nums.sort((a, b) => a - b);
+                const mid = Math.floor(numsLen / 2);
+                return numsLen % 2 !== 0
+                    ? nums[mid]
+                    : (nums[mid - 1] + nums[mid]) / 2;
             });
         }
 
         min() {
-            return this._deriveAgg(v => {
-                let result = null;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null && (result === null || v[i] < result)) result = v[i];
-                }
-                return result;
-            });
+            return this._deriveAgg(v => getListStats(v).min);
         }
 
         mode() {
             return this._deriveAgg(v => {
-                const counts = new Map();
+                if (!isArrayOrTypedArray(v)) return null;
+                const len = (v as any).length;
+
+                const counts = new Map<any, number>();
                 let maxCount = 0;
-                let modeVal = null;
-                for (let i = 0; i < v.length; i++) {
-                    const val = v[i];
+
+                for (let i = 0; i < len; i++) {
+                    const val = (v as any)[i];
                     if (val == null) continue;
-                    const count = (counts.get(val) || 0) + 1;
-                    counts.set(val, count);
-                    if (count > maxCount) { maxCount = count; modeVal = val; }
+                    const c = (counts.get(val) ?? 0) + 1;
+                    counts.set(val, c);
+                    if (c > maxCount) maxCount = c;
                 }
-                return modeVal;
+
+                if (maxCount === 0) return null;
+
+                const modes: any[] = [];
+                for (const [val, c] of counts.entries()) {
+                    if (c === maxCount) {
+                        modes.push(val);
+                    }
+                }
+
+                if (modes.length === 0) return null;
+
+                modes.sort((a, b) => {
+                    if (a == null && b == null) return 0;
+                    if (a == null) return 1;
+                    if (b == null) return -1;
+                    if (a < b) return -1;
+                    if (a > b) return 1;
+                    return 0;
+                });
+
+                return modes[0];
             });
         }
 
+        n_unique() {
+            return this._deriveAgg(v => new Set(v).size);
+        }
+
         quantile(q: number) {
-            if (q < 0 || q > 1) throw new Error("Quantile q must be between 0 and 1");
+            if (q < 0 || q > 1) throw new ComputeError("Quantile q must be between 0 and 1");
             return this._deriveAgg(v => {
                 const f: any[] = [];
                 for (let i = 0; i < v.length; i++) {
@@ -152,37 +165,11 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         }
 
         std() {
-            return this._deriveAgg(v => {
-                let sum = 0, count = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) { sum += v[i]; count++; }
-                }
-                if (count < 2) return 0;
-                const mean = sum / count;
-                let variance = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) variance += (v[i] - mean) ** 2;
-                }
-                return Math.sqrt(variance / (count - 1));
-            });
+            return this._deriveAgg(v => getListStats(v).std);
         }
 
         sum() {
-            return this._deriveAgg(v => {
-                let total = null;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) total = (total ?? 0) + v[i];
-                }
-                return total;
-            });
-        }
-
-        uniqueCount() {
-            return this._deriveAgg(v => new Set(v).size);
-        }
-
-        n_unique() {
-            return this.uniqueCount();
+            return this._deriveAgg(v => getListStats(v).sum);
         }
     }
 }

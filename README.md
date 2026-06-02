@@ -146,7 +146,7 @@ Chained mathematical functions execute cleanly with built-in null-safety (Kleene
 - `.sum()`, `.avg()` / `.mean()`, `.median()`, `.mode()`, `.std()`, `.min()`, `.max()`
 - `.count(options?)` — Option `{ includeNulls: boolean }`.
 - `.first()`, `.last()`
-- `.any()`, `.all()`, `.any_null()`, `.all_null()`, `.uniqueCount()`
+- `.any()`, `.all()`, `.any_null()`, `.all_null()`, `.n_unique()`
 
 ---
 

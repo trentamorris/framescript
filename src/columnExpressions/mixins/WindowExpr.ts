@@ -1,6 +1,7 @@
 import type { IExpr } from "../../types"
 import type { ExprConstructor } from "../types"
 import { derive } from "../ExprBase"
+import { getListStats, isArrayOfType } from "../../utils"
 
 export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
@@ -191,46 +192,36 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         }
 
         rolling_max(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                let result = null;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null && (result === null || v[i] > result)) result = v[i];
-                }
-                return result;
-            });
+            return this._rolling(windowSize, v => getListStats(v).max);
         }
 
         rolling_mean(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                let sum = 0, count = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) { sum += v[i]; count++; }
-                }
-                return count ? sum / count : null;
-            });
+            return this._rolling(windowSize, v => getListStats(v).mean);
         }
 
         rolling_median(windowSize: number) {
             return this._rolling(windowSize, v => {
-                const f: any[] = [];
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) f.push(v[i]);
+                if (!isArrayOfType(v, "number", { allowNulls: true })) return null;
+                const len = v.length;
+                const nums: number[] = [];
+                for (let i = 0; i < len; i++) {
+                    const val = v[i];
+                    if (val != null) {
+                        nums.push(val);
+                    }
                 }
-                if (!f.length) return null;
-                f.sort((a, b) => a - b);
-                const mid = Math.floor(f.length / 2);
-                return f.length % 2 !== 0 ? f[mid] : (f[mid - 1] + f[mid]) / 2;
+                const numsLen = nums.length;
+                if (numsLen === 0) return null;
+                nums.sort((a, b) => a - b);
+                const mid = Math.floor(numsLen / 2);
+                return numsLen % 2 !== 0
+                    ? nums[mid]
+                    : (nums[mid - 1] + nums[mid]) / 2;
             });
         }
 
         rolling_min(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                let result = null;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null && (result === null || v[i] < result)) result = v[i];
-                }
-                return result;
-            });
+            return this._rolling(windowSize, v => getListStats(v).min);
         }
 
         rolling_quantile(quantile: number, windowSize: number) {
@@ -279,29 +270,11 @@ export const WindowExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         }
 
         rolling_std(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                let sum = 0, count = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) { sum += v[i]; count++; }
-                }
-                if (count < 2) return 0;
-                const mean = sum / count;
-                let variance = 0;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) variance += (v[i] - mean) ** 2;
-                }
-                return Math.sqrt(variance / (count - 1));
-            });
+            return this._rolling(windowSize, v => getListStats(v).std);
         }
 
         rolling_sum(windowSize: number) {
-            return this._rolling(windowSize, v => {
-                let total = null;
-                for (let i = 0; i < v.length; i++) {
-                    if (v[i] != null) total = (total ?? 0) + v[i];
-                }
-                return total;
-            });
+            return this._rolling(windowSize, v => getListStats(v).sum);
         }
 
         row_number() {

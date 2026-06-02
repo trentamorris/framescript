@@ -3,7 +3,7 @@ import { inferColumnType } from "../utils"
 import type { GroupMap } from "../types"
 import { resolveColumnSelectors, ALL_COLUMNS_MARKER } from "../../columnExpressions"
 import { DataType } from "../../datatypes"
-import type { IExpr, ColumnDict } from "../../types"
+import type { IExpr, ColumnDict, RowRecord } from "../../types"
 
 export class GroupedData<T, K extends keyof T> {
     private groups: GroupMap
@@ -30,7 +30,7 @@ export class GroupedData<T, K extends keyof T> {
         this.parentSchema = parentSchema
     }
 
-    to_dataframe<U extends Record<string, any> = any>(): DataFrame<U> {
+    to_dataframe<U extends RowRecord = any>(): DataFrame<U> {
         const keysLen = this.keys.length;
         const keysStr = new Array(keysLen);
         for (let i = 0; i < keysLen; i++) {
@@ -62,7 +62,7 @@ export class GroupedData<T, K extends keyof T> {
         return new DataFrame<U>(newColumns as any, outSchema, groupIdx);
     }
 
-    agg<U extends Record<string, any> = any>(...exprs: (IExpr | any)[]): DataFrame<U> {
+    agg<U extends RowRecord = any>(...exprs: (IExpr | any)[]): DataFrame<U> {
         const allKeysLen = this.allKeys.length;
         const allKeysStr = new Array(allKeysLen);
         for (let i = 0; i < allKeysLen; i++) {

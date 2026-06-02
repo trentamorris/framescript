@@ -1,6 +1,7 @@
 import type { ExprConstructor } from "../types";
 import { kleeneUnary, derive } from "../ExprBase";
-import { isArrayOrTypedArray, getListStats, getListMedian, getListMode, sortList } from "../../utils";
+import { isArrayOrTypedArray, getListStats, sortList, isArrayOfType } from "../../utils";
+import { ComputeError } from "../../exceptions";
 
 export class ListExprNamespace {
     constructor(public expr: any) { }
@@ -94,7 +95,7 @@ export class ListExprNamespace {
                 const index = idxs[i];
                 const val = (arr as any).at(index);
                 if (val === undefined && !null_on_oob) {
-                    throw new Error(`Index ${index} is out of bounds for list of length ${len}`);
+                    throw new ComputeError(`Index ${index} is out of bounds for list of length ${len}`);
                 }
                 res[i] = val ?? null;
             }
@@ -104,7 +105,7 @@ export class ListExprNamespace {
 
     gather_every(n: number, offset: number = 0) {
         if (n <= 0) {
-            throw new Error("Step size n must be positive");
+            throw new ComputeError("Step size n must be positive");
         }
         return this._deriveList((arr) => {
             const len = (arr as any).length;
@@ -120,20 +121,23 @@ export class ListExprNamespace {
         return this._deriveList((arr) => {
             const val = (arr as any).at(index);
             if (val === undefined && !null_on_oob) {
-                throw new Error(`Index ${index} is out of bounds for list of length ${(arr as any).length}`);
+                throw new ComputeError(`Index ${index} is out of bounds for list of length ${(arr as any).length}`);
             }
             return val ?? null;
         });
     }
 
-    join(separator: string) {
+    join(separator: string, { ignoreNulls = false }: { ignoreNulls?: boolean } = {}) {
         return this._deriveList((arr) => {
             const list = Array.from(arr as any);
-            const listLen = list.length;
-            const strList = new Array(listLen);
-            for (let i = 0; i < listLen; i++) {
+            const strList: string[] = [];
+            for (let i = 0; i < list.length; i++) {
                 const x = list[i];
-                strList[i] = x == null ? "" : String(x);
+                if (x != null) {
+                    strList.push(String(x));
+                } else if (!ignoreNulls) {
+                    strList.push("");
+                }
             }
             return strList.join(separator);
         });
@@ -163,7 +167,24 @@ export class ListExprNamespace {
     }
 
     median() {
-        return this._deriveList(getListMedian);
+        return this._deriveList((arr) => {
+            if (!isArrayOfType(arr, "number", { allowNulls: true })) return null;
+            const len = (arr as any).length;
+            const nums: number[] = [];
+            for (let i = 0; i < len; i++) {
+                const val = (arr as any)[i];
+                if (val != null) {
+                    nums.push(val);
+                }
+            }
+            const numsLen = nums.length;
+            if (numsLen === 0) return null;
+            nums.sort((a, b) => a - b);
+            const mid = Math.floor(numsLen / 2);
+            return numsLen % 2 !== 0
+                ? nums[mid]
+                : (nums[mid - 1] + nums[mid]) / 2;
+        });
     }
 
     min() {
@@ -171,7 +192,36 @@ export class ListExprNamespace {
     }
 
     mode() {
-        return this._deriveList(getListMode);
+        return this._deriveList((arr) => {
+            const len = (arr as any).length;
+            const counts = new Map<any, number>();
+            let maxCount = 0;
+
+            for (let i = 0; i < len; i++) {
+                const val = (arr as any)[i];
+                if (val == null) continue;
+                const c = (counts.get(val) ?? 0) + 1;
+                counts.set(val, c);
+                if (c > maxCount) maxCount = c;
+            }
+
+            if (maxCount === 0) return [];
+
+            const modes: any[] = [];
+            for (const [val, c] of counts.entries()) {
+                if (c === maxCount) {
+                    modes.push(val);
+                }
+            }
+
+            return sortList(modes);
+        });
+    }
+
+    n_unique() {
+        return this._deriveList((arr) => {
+            return new Set(Array.from(arr as any)).size;
+        });
     }
 
     reverse() {
@@ -199,7 +249,7 @@ export class ListExprNamespace {
 
     unique() {
         return this._deriveList((arr) => {
-            return Array.from(new Set(Array.from(arr as any)));
+            return Array.from(new Set(arr as any));
         });
     }
 }

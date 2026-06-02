@@ -2,6 +2,7 @@ import type { IExpr, ColumnData, ColumnDict } from "../types"
 import { DataType, DataTypeRegistry } from "../datatypes"
 import { KEY_SEPARATOR } from "./constants"
 import { isObj } from "../utils"
+import { assertColumnExists } from "../exceptions"
 
 function partition_by_columns(
     columns: ColumnDict,
@@ -15,9 +16,7 @@ function partition_by_columns(
     for (let i = 0; i < pKeysLen; i++) {
         const pKey = partitionKeys[i];
         if (typeof pKey === "string") {
-            if (!(pKey in columns)) {
-                throw new Error(`Partition key "${pKey}" does not exist in the DataFrame.`);
-            }
+            assertColumnExists(pKey, columns, "Partition key", " in the DataFrame.");
             keyColumns[i] = columns[pKey];
         } else {
             keyColumns[i] = pKey.evaluate(columns, height);
@@ -197,3 +196,21 @@ export function inferColumnType(col: ColumnData): DataType {
     if (isDate && hasDateObj) return DataTypeRegistry.Datetime;
     return DataTypeRegistry.Utf8;
 }
+
+export function gatherColumnsByIndices(columns: ColumnDict, indices: number[]): ColumnDict {
+    const keys = Object.keys(columns);
+    const numKeys = keys.length;
+    const newHeight = indices.length;
+    const res: ColumnDict = {};
+    for (let j = 0; j < numKeys; j++) {
+        const k = keys[j];
+        const oldCol = columns[k];
+        const newCol = new Array(newHeight);
+        for (let idx = 0; idx < newHeight; idx++) {
+            newCol[idx] = oldCol[indices[idx]];
+        }
+        res[k] = newCol;
+    }
+    return res;
+}
+

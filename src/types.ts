@@ -1,9 +1,11 @@
 import type { DataFrame } from "./dataframe/dataframe";
 
+export type RowRecord = Record<string, any>;
+
 export type ColumnData<T = any> = ArrayLike<T> & Iterable<T>;
 export type ColumnDict = Record<string, ColumnData>;
 
-export type DataFrameColumns<T extends Record<string, any>> = {
+export type DataFrameColumns<T extends RowRecord> = {
     [K in keyof T]: ColumnData<T[K]>;
 };
 
@@ -47,4 +49,5 @@ export interface ConcatOptions {
     how?: ConcatHow;
     horizontal?: HorizontalConcatOptions;
 }
-export type ConcatItem = DataFrame<any> | ColumnDict | Record<string, any>[];
+export type ConcatItem = DataFrame<any> | ColumnDict | RowRecord[];
+

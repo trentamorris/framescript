@@ -18,7 +18,8 @@ import "./unpivot.test";
 import "./with_columns.test";
 import "./reverse.test";
 import "./robustness.test";
+import "./exceptions.test";
 
 console.log("=========================================");
-console.log("🎉 ALL 16 DATAFRAME TESTS PASSED SUCCESSFULLY!");
+console.log("🎉 ALL 17 DATAFRAME TESTS PASSED SUCCESSFULLY!");
 console.log("=========================================");

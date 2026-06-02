@@ -78,7 +78,13 @@ try {
         $tbl.col("val1").rand().alias("rand_no_seed"),
         $tbl.col("val1").rand(42).alias("rand_seed_42_a"),
         $tbl.col("val1").rand(42).alias("rand_seed_42_b"),
-        $tbl.col("val1").rand(99).alias("rand_seed_99")
+        $tbl.col("val1").rand(99).alias("rand_seed_99"),
+        $tbl.col("val1").rand(undefined, { min: 10, max: 20 }).alias("rand_range_unseeded"),
+        $tbl.col("val1").rand(42, { min: 10, max: 20 }).alias("rand_range_seeded_a"),
+        $tbl.col("val1").rand(42, { min: 10, max: 20 }).alias("rand_range_seeded_b"),
+        $tbl.col("val1").rand(undefined, { min: 100, max: 200, integer: true }).alias("rand_int_unseeded"),
+        $tbl.col("val1").rand(42, { min: 100, max: 200, integer: true }).alias("rand_int_seeded_a"),
+        $tbl.col("val1").rand(42, { min: 100, max: 200, integer: true }).alias("rand_int_seeded_b")
     ]).to_dicts() as any[];
 
     console.dir(projected, { depth: null });
@@ -134,6 +140,12 @@ try {
     if (r0.rand_no_seed < 0 || r0.rand_no_seed >= 1) throw new Error(`rand_no_seed out of range: ${r0.rand_no_seed}`);
     if (r0.rand_seed_42_a !== r0.rand_seed_42_b) throw new Error(`seeded random mismatch: ${r0.rand_seed_42_a} vs ${r0.rand_seed_42_b}`);
     if (r0.rand_seed_42_a === r0.rand_seed_99) throw new Error(`seeded random collision with different seeds`);
+    if (r0.rand_range_unseeded < 10 || r0.rand_range_unseeded >= 20) throw new Error(`rand_range_unseeded out of range`);
+    if (r0.rand_range_seeded_a < 10 || r0.rand_range_seeded_a >= 20) throw new Error(`rand_range_seeded_a out of range`);
+    if (r0.rand_range_seeded_a !== r0.rand_range_seeded_b) throw new Error(`rand_range_seeded mismatch`);
+    if (r0.rand_int_unseeded < 100 || r0.rand_int_unseeded > 200 || !Number.isInteger(r0.rand_int_unseeded)) throw new Error(`rand_int_unseeded invalid`);
+    if (r0.rand_int_seeded_a < 100 || r0.rand_int_seeded_a > 200 || !Number.isInteger(r0.rand_int_seeded_a)) throw new Error(`rand_int_seeded_a invalid`);
+    if (r0.rand_int_seeded_a !== r0.rand_int_seeded_b) throw new Error(`rand_int_seeded mismatch`);
 
 
     // Assert row 1
@@ -187,6 +199,12 @@ try {
     if (r1.rand_no_seed < 0 || r1.rand_no_seed >= 1) throw new Error(`rand_no_seed out of range: ${r1.rand_no_seed}`);
     if (r1.rand_seed_42_a !== r1.rand_seed_42_b) throw new Error(`seeded random mismatch: ${r1.rand_seed_42_a} vs ${r1.rand_seed_42_b}`);
     if (r1.rand_seed_42_a === r1.rand_seed_99) throw new Error(`seeded random collision with different seeds`);
+    if (r1.rand_range_unseeded < 10 || r1.rand_range_unseeded >= 20) throw new Error(`rand_range_unseeded out of range`);
+    if (r1.rand_range_seeded_a < 10 || r1.rand_range_seeded_a >= 20) throw new Error(`rand_range_seeded_a out of range`);
+    if (r1.rand_range_seeded_a !== r1.rand_range_seeded_b) throw new Error(`rand_range_seeded mismatch`);
+    if (r1.rand_int_unseeded < 100 || r1.rand_int_unseeded > 200 || !Number.isInteger(r1.rand_int_unseeded)) throw new Error(`rand_int_unseeded invalid`);
+    if (r1.rand_int_seeded_a < 100 || r1.rand_int_seeded_a > 200 || !Number.isInteger(r1.rand_int_seeded_a)) throw new Error(`rand_int_seeded_a invalid`);
+    if (r1.rand_int_seeded_a !== r1.rand_int_seeded_b) throw new Error(`rand_int_seeded mismatch`);
 
 
     console.log("=========================================");

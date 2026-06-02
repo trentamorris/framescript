@@ -56,12 +56,14 @@ export class StringExprNamespace {
         });
     }
 
-    ends_with(suffix: string) {
-        return this._deriveString((str) => str.endsWith(suffix));
-    }
-
-    explode() {
-        return this._deriveString((str) => str.split(""));
+    decode_uri_component() {
+        return this._deriveString((str) => {
+            try {
+                return decodeURIComponent(str);
+            } catch {
+                return str;
+            }
+        });
     }
 
     encode_uri_component() {
@@ -74,14 +76,12 @@ export class StringExprNamespace {
         });
     }
 
-    decode_uri_component() {
-        return this._deriveString((str) => {
-            try {
-                return decodeURIComponent(str);
-            } catch {
-                return str;
-            }
-        });
+    ends_with(suffix: string) {
+        return this._deriveString((str) => str.endsWith(suffix));
+    }
+
+    explode() {
+        return this._deriveString((str) => str.split(""));
     }
 
     extract(pattern: RegExp, group: number = 0) {
