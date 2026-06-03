@@ -433,42 +433,22 @@ export class DataFrame<T extends RowRecord = any> {
         for (let j = 0; j < indexLen; j++) {
             assertColumnExists(indexStr[j], this._columns, "Pivot index key");
         }
-
-        const columnsStr = toValidStringArray(columns);
-        const columnsLen = columnsStr.length;
-        for (let j = 0; j < columnsLen; j++) {
-            assertColumnExists(columnsStr[j], this._columns, "Pivot column key");
-        }
-
-        const valuesStr = toValidStringArray(values);
-        const valuesLen = valuesStr.length;
-        for (let j = 0; j < valuesLen; j++) {
-            assertColumnExists(valuesStr[j], this._columns, "Pivot values key");
-        }
+        const colKey = String(columns);
+        const valKey = String(values);
+        assertColumnExists(colKey, this._columns, "Pivot column key");
+        assertColumnExists(valKey, this._columns, "Pivot values key");
 
         const groups = new Map<string, number>();
         const firstRowIdxs: number[] = [];
         const colNames = new Set<string>();
 
         const height = this._height;
-
-        const pivotCols = new Array(columnsLen);
-        for (let j = 0; j < columnsLen; j++) {
-            pivotCols[j] = this._columns[columnsStr[j]];
-        }
-        const valCols = new Array(valuesLen);
-        for (let j = 0; j < valuesLen; j++) {
-            valCols[j] = this._columns[valuesStr[j]];
-        }
+        const pivotCol = this._columns[colKey];
+        const valCol = this._columns[valKey];
 
         for (let i = 0; i < height; i++) {
             const rowKey = computeRowHash(this._columns, indexStr, i);
-            
-            let pivotKeyName = "";
-            for (let c = 0; c < columnsLen; c++) {
-                pivotKeyName += (c > 0 ? "_" : "") + String(pivotCols[c][i]);
-            }
-            colNames.add(pivotKeyName);
+            colNames.add(String(pivotCol[i]));
 
             if (groups.get(rowKey) === undefined) {
                 groups.set(rowKey, groups.size);
@@ -489,33 +469,19 @@ export class DataFrame<T extends RowRecord = any> {
         }
         const newColumns = gatherColumnsByIndices(indexColsDict, firstRowIdxs) as Record<string, any[]>;
 
-        const uniquePivotKeys = Array.from(colNames);
-        const uniquePivotKeysLen = uniquePivotKeys.length;
-
-        for (let j = 0; j < uniquePivotKeysLen; j++) {
-            const pivotKeyName = uniquePivotKeys[j];
-            for (let v = 0; v < valuesLen; v++) {
-                const valKey = valuesStr[v];
-                const colName = valuesLen > 1 ? `${pivotKeyName}_${valKey}` : pivotKeyName;
-                newColumns[colName] = new Array(outHeight).fill(null);
-                outSchema[colName] = this._schema[valKey] || DataTypeRegistry.Utf8;
-            }
+        const allCols = Array.from(colNames);
+        const valType = this._schema[valKey] || DataTypeRegistry.Utf8;
+        for (let j = 0; j < allCols.length; j++) {
+            const colName = allCols[j];
+            newColumns[colName] = new Array(outHeight).fill(null);
+            outSchema[colName] = valType;
         }
 
         for (let i = 0; i < height; i++) {
             const rowKey = computeRowHash(this._columns, indexStr, i);
             const groupIdx = groups.get(rowKey)!;
-            
-            let pivotKeyName = "";
-            for (let c = 0; c < columnsLen; c++) {
-                pivotKeyName += (c > 0 ? "_" : "") + String(pivotCols[c][i]);
-            }
-
-            for (let v = 0; v < valuesLen; v++) {
-                const valKey = valuesStr[v];
-                const colName = valuesLen > 1 ? `${pivotKeyName}_${valKey}` : pivotKeyName;
-                newColumns[colName][groupIdx] = valCols[v][i];
-            }
+            const pivotColName = String(pivotCol[i]);
+            newColumns[pivotColName][groupIdx] = valCol[i];
         }
 
         return new DataFrame<U>(newColumns, outSchema, outHeight);
