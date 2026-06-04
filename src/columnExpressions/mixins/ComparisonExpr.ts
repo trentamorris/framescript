@@ -1,22 +1,6 @@
 import type { ExprConstructor } from "../types"
 import { derive, kleeneUnary, kleeneBinary } from "../ExprBase"
-import { isArrayOrTypedArray } from "../../utils"
-
-function getCacheKey(val: any): any {
-    if (val == null) {
-        return val;
-    }
-    if (val instanceof Date) {
-        return `d:${val.getTime()}`;
-    }
-    if (val instanceof Uint8Array) {
-        return `u:${val.toString()}`;
-    }
-    if (typeof val === "object" || typeof val === "function") {
-        return String(val);
-    }
-    return val;
-}
+import { isArrayOrTypedArray, isArrayOfType, isValidNumber, toCanonicalString } from "../../utils"
 
 function computeIsIn(vArray: ArrayLike<any>, columns: any, values: any, invert: boolean): any[] {
     const height = vArray.length;
@@ -33,12 +17,12 @@ function computeIsIn(vArray: ArrayLike<any>, columns: any, values: any, invert: 
                 if (isArrayOrTypedArray(candidates)) {
                     const cLen = candidates.length;
                     for (let j = 0; j < cLen; j++) {
-                        set.add(getCacheKey(candidates[j]));
+                        set.add(toCanonicalString(candidates[j]));
                     }
                 } else {
-                    set.add(getCacheKey(candidates));
+                    set.add(toCanonicalString(candidates));
                 }
-                const hasVal = set.has(getCacheKey(v));
+                const hasVal = set.has(toCanonicalString(v));
                 result[i] = invert ? !hasVal : hasVal;
             }
         }
@@ -47,14 +31,14 @@ function computeIsIn(vArray: ArrayLike<any>, columns: any, values: any, invert: 
         const set = new Set();
         const arrLen = arr.length;
         for (let j = 0; j < arrLen; j++) {
-            set.add(getCacheKey(arr[j]));
+            set.add(toCanonicalString(arr[j]));
         }
         for (let i = 0; i < height; i++) {
             const v = vArray[i];
             if (v == null) {
                 result[i] = null;
             } else {
-                const hasVal = set.has(getCacheKey(v));
+                const hasVal = set.has(toCanonicalString(v));
                 result[i] = invert ? !hasVal : hasVal;
             }
         }
@@ -67,7 +51,7 @@ function evaluateDuplication(vArray: ArrayLike<any>, checkDuplicate: boolean): b
     const counts = new Map<any, number>();
     const keys = new Array(height);
     for (let i = 0; i < height; i++) {
-        const k = getCacheKey(vArray[i]);
+        const k = toCanonicalString(vArray[i]);
         keys[i] = k;
         counts.set(k, (counts.get(k) || 0) + 1);
     }
@@ -174,13 +158,16 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
 
         is_close(
             other: any,
-            options: {
+            {
+                abs_tol = 1e-8,
+                rel_tol = 1e-8,
+                nans_equal = false
+            }: {
                 abs_tol?: number;
                 rel_tol?: number;
                 nans_equal?: boolean;
             } = {}
         ) {
-            const { abs_tol = 1e-8, rel_tol = 1e-8, nans_equal = false } = options;
             return derive(this, (vArray, columns) => {
                 const height = vArray.length;
                 const otherVal = (this as any)._resolve(other, columns, height);
@@ -191,18 +178,14 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
                     const o = isOtherArray ? otherVal[i] : otherVal;
                     if (v == null || o == null) {
                         result[i] = null;
-                    } else if (Number.isNaN(v) || Number.isNaN(o)) {
-                        if (nans_equal && Number.isNaN(v) && Number.isNaN(o)) {
-                            result[i] = true;
-                        } else {
-                            result[i] = false;
-                        }
-                    } else if (!Number.isFinite(v) || !Number.isFinite(o)) {
-                        result[i] = (v === o);
-                    } else {
+                    } else if (isValidNumber(v) && isValidNumber(o)) {
                         const absDiff = Math.abs(v - o);
                         const threshold = Math.max(rel_tol * Math.max(Math.abs(v), Math.abs(o)), abs_tol);
                         result[i] = absDiff <= threshold;
+                    } else if (Number.isNaN(v) && Number.isNaN(o)) {
+                        result[i] = nans_equal;
+                    } else {
+                        result[i] = (v === o);
                     }
                 }
                 return result;
@@ -213,22 +196,16 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return derive(this, (vArray) => evaluateDuplication(vArray, true));
         }
 
-        is_empty(options: { ignoreNulls?: boolean } = {}) {
-            const { ignoreNulls = false } = options;
+        is_empty({ ignoreNulls = false }: { ignoreNulls?: boolean } = {}) {
             return derive(this, kleeneUnary((v) => {
                 if (typeof v === "string") {
                     return v.length === 0;
                 }
                 if (isArrayOrTypedArray(v)) {
                     if (ignoreNulls) {
-                        const len = (v as any).length;
-                        let nonNullCount = 0;
-                        for (let i = 0; i < len; i++) {
-                            if ((v as any)[i] != null) {
-                                nonNullCount++;
-                            }
-                        }
-                        return nonNullCount === 0;
+                        return isArrayOfType(v, "nullish", {
+                            mode: "every"
+                        });
                     }
                     return (v as any).length === 0;
                 }
@@ -240,23 +217,6 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return derive(this, kleeneUnary(Number.isFinite));
         }
 
-        is_first_distinct() {
-            return derive(this, (vArray) => {
-                const height = vArray.length;
-                const seen = new Set();
-                const result = new Array(height);
-                for (let i = 0; i < height; i++) {
-                    const k = getCacheKey(vArray[i]);
-                    if (seen.has(k)) {
-                        result[i] = false;
-                    } else {
-                        seen.add(k);
-                        result[i] = true;
-                    }
-                }
-                return result;
-            });
-        }
 
         is_in(values: any[] | any) {
             return derive(this, (vArray, columns) => computeIsIn(vArray, columns, values, false));
@@ -266,34 +226,6 @@ export const ComparisonExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return derive(this, kleeneUnary((v) => v === Infinity || v === -Infinity));
         }
 
-        is_last_distinct() {
-            return derive(this, (vArray) => {
-                const height = vArray.length;
-                const seen = new Set();
-                const result = new Array(height);
-                for (let i = height - 1; i >= 0; i--) {
-                    const k = getCacheKey(vArray[i]);
-                    if (seen.has(k)) {
-                        result[i] = false;
-                    } else {
-                        seen.add(k);
-                        result[i] = true;
-                    }
-                }
-                return result;
-            });
-        }
-
-        is_n_distinct(n: number) {
-            return (this as any)._deriveAgg((v: any[]) => {
-                const set = new Set();
-                const len = v.length;
-                for (let i = 0; i < len; i++) {
-                    set.add(getCacheKey(v[i]));
-                }
-                return set.size === n;
-            });
-        }
 
         is_nan() {
             return derive(this, kleeneUnary(Number.isNaN));

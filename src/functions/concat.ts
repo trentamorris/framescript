@@ -1,7 +1,7 @@
 import { DataFrame } from "../dataframe/dataframe"
-import { DataType, DataTypeRegistry } from "../datatypes"
+import { DataTypeRegistry } from "../datatypes"
 import { isTypedArray, isPlainObj, isArrayOfType, isArrayOrTypedArray } from "../utils"
-import type { ColumnDict, ConcatOptions, ConcatItem, RowRecord, DataFrameSchema } from "../types"
+import type { ColumnDict, ConcatOptions, ConcatItem, RowRecord, DataFrameSchema, RegisteredDataType } from "../types"
 import { DataFrameError, SchemaError } from "../exceptions"
 export function normalizeToDataFrames(item: any, context: string, index: number): DataFrame<any>[] {
     if (item == null) {
@@ -214,7 +214,7 @@ export function concat<U extends RowRecord = any>(
 
             const outSchema: DataFrameSchema = {};
             for (const key of allColumns) {
-                let colType: DataType | null = null;
+                let colType: RegisteredDataType | null = null;
                 for (const item of items) {
                     const itemType = item.schema[key];
                     if (itemType) {

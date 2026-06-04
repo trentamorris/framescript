@@ -136,7 +136,10 @@ try {
     const aggResult = df.select([
         $tbl.col("numeric_list").list.first().quantile(0.5).alias("q_50"),
         $tbl.col("numeric_list").list.first().quantile(0.9).alias("q_90"),
-        $tbl.col("numeric_list").list.first().n_unique().alias("n_uniq")
+        $tbl.col("numeric_list").list.first().n_unique().alias("n_uniq"),
+        $tbl.col("id").mode().alias("mode_id"),
+        $tbl.col("id").mode().list.first().alias("first_mode_id"),
+        $tbl.col("id").mode().list.last().alias("last_mode_id")
     ]).to_dicts() as any[];
 
     console.log("Aggregation test results:");
@@ -150,6 +153,9 @@ try {
     if (agg0.q_50 !== 5.5) throw new Error(`agg0.q_50 failed, got ${agg0.q_50}`);
     if (agg0.q_90 !== 9.1) throw new Error(`agg0.q_90 failed, got ${agg0.q_90}`);
     if (agg0.n_uniq !== 2) throw new Error("agg0.n_uniq failed");
+    if (JSON.stringify(agg0.mode_id) !== JSON.stringify([1, 2])) throw new Error(`agg0.mode_id failed, got ${JSON.stringify(agg0.mode_id)}`);
+    if (agg0.first_mode_id !== 1) throw new Error(`agg0.first_mode_id failed, got ${agg0.first_mode_id}`);
+    if (agg0.last_mode_id !== 2) throw new Error(`agg0.last_mode_id failed, got ${agg0.last_mode_id}`);
     console.log("\n🎉 ALL Expr NEW MANIPULATIONS TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("\n❌ Expr NEW MANIPULATIONS TESTS FAILED:", err);

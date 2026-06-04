@@ -1,8 +1,8 @@
 import { ColumnExpr, resolveColumnSelectors, ALL_COLUMNS_MARKER } from "../columnExpressions"
 import { GroupedData } from "./grouped/grouped"
-import type { IExpr, ColumnData, ColumnDict, DataFrameColumns, ConcatOptions, ConcatItem, HorizontalConcatOptions, RowRecord, DataFrameSchema } from "../types"
+import type { IExpr, ColumnData, ColumnDict, DataFrameColumns, ConcatOptions, ConcatItem, HorizontalConcatOptions, RowRecord, DataFrameSchema, RegisteredDataType } from "../types"
 import type { GroupMap, LimitOptions, SortOptions, PivotOptions, JoinOptions, UnpivotOptions } from "./types"
-import { DataType, DataTypeRegistry } from "../datatypes"
+import { DataTypeRegistry } from "../datatypes"
 import { isArrayOrTypedArray, isTypedArray, toValidArray, toValidStringArray, isObj, isArrayOfType, isColExpr, clamp } from "../utils"
 import { assertColumnExists, DataFrameError } from "../exceptions"
 import { concat } from "../functions/concat"
@@ -141,7 +141,7 @@ export class DataFrame<T extends RowRecord = any> {
         return new DataFrame<Omit<T, K>>(newColumns, outSchema, this._height);
     }
 
-    get dtypes(): DataType[] {
+    get dtypes(): RegisteredDataType[] {
         const keys = Object.keys(this._columns);
         const len = keys.length;
         const result = new Array(len);

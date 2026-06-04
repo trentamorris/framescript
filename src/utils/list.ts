@@ -1,6 +1,8 @@
 import { isArrayOrTypedArray, isClass, isObj, isPlainObj, isTypedArray } from "./guards";
 import { isValidDateObj } from "./date";
 import { toValidNumber, isValidNumber } from "./number";
+import { toCanonicalString } from "./string";
+import type { UniqueListStatsOptions } from "../types";
 
 export type ArrayItemType =
     | "string"
@@ -10,6 +12,10 @@ export type ArrayItemType =
     | "object"
     | "plainObject"
     | "date"
+    | "any"
+    | "null"
+    | "undefined"
+    | "nullish"
     | (new (...args: any[]) => any)
     | ((v: unknown) => boolean);
 export type ArrayCheckMode = "every" | "some";
@@ -53,7 +59,11 @@ export function isArrayOfType(
     }
 
     const check = (v: unknown) => {
+        if (type === "null") return v === null;
+        if (type === "undefined") return v === undefined;
+        if (type === "nullish") return v == null;
         if (v == null) return allowNulls;
+        if (type === "any") return true;
         if (typeof type === "function") {
             return isClass(type) ? v instanceof type : (type as (v: unknown) => boolean)(v);
         }
@@ -159,3 +169,36 @@ export function getListStats(arr: unknown): {
         isNumeric: count > 0 && count === (len - nullCount)
     };
 }
+
+export function getUniqueListStats(
+    arr: ArrayLike<any>,
+    options: UniqueListStatsOptions = {}
+): { values: any[]; count: number } {
+    const list = Array.from(arr);
+    if (options.strict) {
+        const selector = options.keySelector ?? toCanonicalString;
+        const seen = new Set();
+        const result: any[] = [];
+        const len = list.length;
+        for (let i = 0; i < len; i++) {
+            const val = list[i];
+            const key = selector(val);
+            if (!seen.has(key)) {
+                seen.add(key);
+                result.push(val);
+            }
+        }
+        return {
+            values: result,
+            count: result.length
+        };
+    }
+
+    const set = new Set(list);
+    return {
+        values: Array.from(set),
+        count: set.size
+    };
+}
+
+

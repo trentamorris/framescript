@@ -160,9 +160,9 @@ try {
         $tbl.col("name").has_nulls().alias("name_has_nulls"),
         $tbl.col("id").has_nulls().alias("id_has_nulls"),
 
-        // is_n_distinct
-        $tbl.col("duplicates").is_n_distinct(3).alias("dup_distinct_3"),
-        $tbl.col("duplicates").is_n_distinct(4).alias("dup_distinct_4")
+        // n_unique checks
+        $tbl.col("duplicates").n_unique().eq(3).alias("dup_distinct_3"),
+        $tbl.col("duplicates").n_unique().eq(4).alias("dup_distinct_4")
     ]).to_dicts() as any[];
 
     console.log("Boolean aggregations results:");
@@ -222,9 +222,7 @@ try {
         $tbl.col("binaryVal").is_in([new Uint8Array([1, 2, 3])]),
         $tbl.col("numVal").is_in([NaN]),
         $tbl.col("listVal").is_empty().alias("list_empty_default"),
-        $tbl.col("listVal").is_empty({ ignoreNulls: true }).alias("list_empty_ignore_nulls"),
-        $tbl.col("dateVal").is_first_distinct().alias("date_first_distinct"),
-        $tbl.col("dateVal").is_last_distinct().alias("date_last_distinct")
+        $tbl.col("listVal").is_empty({ ignoreNulls: true }).alias("list_empty_ignore_nulls")
     ]).to_dicts() as any[];
 
     console.log("Edge cases / complex types unique/in/empty checks results:");
@@ -283,29 +281,27 @@ try {
     if (edgeResults[0].list_empty_ignore_nulls !== true) throw new Error("list_empty_ignore_nulls index 0 failed");
     if (edgeResults[1].list_empty_ignore_nulls !== false) throw new Error("list_empty_ignore_nulls index 1 failed");
     if (edgeResults[2].list_empty_ignore_nulls !== true) throw new Error("list_empty_ignore_nulls index 2 failed");
-
-    // is_first_distinct comparisons
-    if (edgeResults[0].date_first_distinct !== true) throw new Error("date_first_distinct row 0 failed");
-    if (edgeResults[1].date_first_distinct !== false) throw new Error("date_first_distinct row 1 failed");
-    if (edgeResults[2].date_first_distinct !== true) throw new Error("date_first_distinct row 2 failed");
-
-    // is_last_distinct comparisons
-    if (edgeResults[0].date_last_distinct !== false) throw new Error("date_last_distinct row 0 failed");
-    if (edgeResults[1].date_last_distinct !== true) throw new Error("date_last_distinct row 1 failed");
-    if (edgeResults[2].date_last_distinct !== true) throw new Error("date_last_distinct row 2 failed");
-
-    // is_n_distinct checks
+    // n_unique checks (default is standard reference checks)
     const distinctResults = edgeDf.select([
-        $tbl.col("dateVal").is_n_distinct(2).alias("date_distinct_2"),
-        $tbl.col("binaryVal").is_n_distinct(2).alias("binary_distinct_2"),
-        $tbl.col("numVal").is_n_distinct(2).alias("num_distinct_2"),
-        $tbl.col("nullVal").is_n_distinct(2).alias("null_distinct_2")
+        $tbl.col("dateVal").n_unique().alias("date_distinct_default"),
+        $tbl.col("binaryVal").n_unique().alias("binary_distinct_default"),
+        $tbl.col("numVal").n_unique().alias("num_distinct_default"),
+        $tbl.col("nullVal").n_unique().alias("null_distinct_default"),
+
+        // n_unique in strict mode (robust value checks)
+        $tbl.col("dateVal").n_unique({ strict: true }).eq(2).alias("date_distinct_strict"),
+        $tbl.col("binaryVal").n_unique({ strict: true }).eq(2).alias("binary_distinct_strict")
     ]).to_dicts() as any[];
 
-    if (distinctResults[0].date_distinct_2 !== true) throw new Error("dateVal distinct count failed");
-    if (distinctResults[0].binary_distinct_2 !== true) throw new Error("binaryVal distinct count failed");
-    if (distinctResults[0].num_distinct_2 !== true) throw new Error("numVal distinct count failed");
-    if (distinctResults[0].null_distinct_2 !== true) throw new Error("nullVal distinct count failed");
+    // In default mode, unique Date instances and TypedArray instances are counted separately (identity checks)
+    if (distinctResults[0].date_distinct_default !== 3) throw new Error("dateVal distinct count failed");
+    if (distinctResults[0].binary_distinct_default !== 3) throw new Error("binaryVal distinct count failed");
+    if (distinctResults[0].num_distinct_default !== 2) throw new Error("numVal distinct count failed");
+    if (distinctResults[0].null_distinct_default !== 2) throw new Error("nullVal distinct count failed");
+
+    // In strict mode, they are strictly compared by value/type (using keySelector)
+    if (distinctResults[0].date_distinct_strict !== true) throw new Error("dateVal strict distinct count failed");
+    if (distinctResults[0].binary_distinct_strict !== true) throw new Error("binaryVal strict distinct count failed");
 
     console.log("✓ edge cases / complex types checks passed");
 

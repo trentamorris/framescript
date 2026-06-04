@@ -242,7 +242,7 @@ export const Duration = new DurationType();
 
 export class ListType<TInner = any> extends NestedDataType<TInner[] | null> {
     readonly name = "List";
-    constructor(public readonly innerType: DataType<TInner>) { super(); }
+    constructor(public readonly innerType: RegisteredDataType & DataType<TInner>) { super(); }
     coerce(val: unknown): TInner[] | null {
         if (val == null) return null;
         const arr = isArrayOrTypedArray(val) ? Array.from(val as any) : [val];
@@ -258,11 +258,11 @@ export class ListType<TInner = any> extends NestedDataType<TInner[] | null> {
     }
     allocate(size: number): (TInner[] | null)[] { return new Array(size).fill(null); }
 }
-export const List = <TInner>(inner: DataType<TInner>) => new ListType<TInner>(inner);
+export const List = <TInner>(inner: RegisteredDataType & DataType<TInner>) => new ListType<TInner>(inner);
 
 export class StructType<TFields extends RowRecord = any> extends NestedDataType<TFields | null> {
     readonly name = "Struct";
-    constructor(public readonly fields: { [K in keyof TFields]: DataType<TFields[K]> }) { super(); }
+    constructor(public readonly fields: { [K in keyof TFields]: RegisteredDataType & DataType<TFields[K]> }) { super(); }
     coerce(val: unknown): TFields | null {
         if (!isObj(val)) return null;
         const res: any = {};
@@ -283,4 +283,12 @@ export class StructType<TFields extends RowRecord = any> extends NestedDataType<
     }
     allocate(size: number): (TFields | null)[] { return new Array(size).fill(null); }
 }
-export const Struct = <TFields extends RowRecord>(fields: { [K in keyof TFields]: DataType<TFields[K]> }) => new StructType<TFields>(fields);
+export const Struct = <TFields extends RowRecord>(fields: { [K in keyof TFields]: RegisteredDataType & DataType<TFields[K]> }) => new StructType<TFields>(fields);
+
+export type RegisteredDataType =
+    | Int8Type | Int16Type | Int32Type | Int64Type
+    | UInt8Type | UInt16Type | UInt32Type | UInt64Type
+    | Float32Type | Float64Type | DecimalType
+    | BooleanType | Utf8Type | BinaryType | NullType | ObjectType
+    | DateType | DatetimeType | TimeType | DurationType
+    | ListType<any> | StructType<any>;

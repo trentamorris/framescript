@@ -1,6 +1,9 @@
 const NUMERIC_CLEAN_REGEX = /[,\s_]/g;
 const VALID_DECIMAL_REGEX = /^[+-]?\d+(?:\.\d+)?$/;
 
+import { isArrayOrTypedArray } from "./guards";
+import { sortList } from "./list";
+
 // ============================================================================
 // /** Generic Number Helpers */
 // ============================================================================
@@ -298,5 +301,34 @@ export function computeQuantile(values: ArrayLike<any>, q: number): number | nul
     const high = Math.ceil(idx);
     if (low === high) return nums[low];
     return nums[low] + (idx - low) * (nums[high] - nums[low]);
+}
+
+/**
+ * Computes the mode(s) of an array, filtering out null/undefined values.
+ * Returns an array of the most frequent values, sorted, or null if empty/no mode.
+ */
+export function computeMode(values: ArrayLike<any>): any[] | null {
+    if (!isArrayOrTypedArray(values) || values.length === 0) return null;
+
+    const counts = new Map<any, number>();
+    let max = 0;
+    let modes: any[] = [];
+
+    for (let i = 0; i < values.length; i++) {
+        const val = values[i];
+        if (val == null) continue;
+        const c = (counts.get(val) ?? 0) + 1;
+        counts.set(val, c);
+
+        if (c > max) {
+            max = c;
+            modes = [val];
+        } else if (c === max) {
+            modes.push(val);
+        }
+    }
+
+    if (modes.length === 0) return null;
+    return sortList(modes);
 }
 

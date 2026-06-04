@@ -1,3 +1,6 @@
+import { isTypedArray, isPlainObj } from "./guards";
+import { isValidDateObj } from "./date";
+
 export type StripMode = "both" | "start" | "end";
 
 export type StripCharsOptions = {
@@ -212,4 +215,96 @@ export function isBlankString(v: unknown): v is string {
         return v.valueOf().trim().length === 0;
     }
     return false;
+}
+
+export function toCanonicalString(
+    val: any,
+    { depth = 0, maxDepth = 50 }: { depth?: number; maxDepth?: number } = {}
+): string {
+    if (depth > maxDepth) {
+        return "v:circular";
+    }
+    if (val === null) {
+        return "v:null";
+    }
+    if (val === undefined) {
+        return "v:undefined";
+    }
+
+    if (val instanceof Date) {
+        return isValidDateObj(val) ? `d:${val.getTime()}` : "d:invalid";
+    }
+
+    if (isTypedArray(val)) {
+        return `u:${val.constructor.name}:${val.toString()}`;
+    }
+
+    if (Array.isArray(val)) {
+        const len = val.length;
+        const parts = new Array(len);
+        const nextOpt = { depth: depth + 1, maxDepth };
+        for (let i = 0; i < len; i++) {
+            parts[i] = toCanonicalString(val[i], nextOpt);
+        }
+        return `a:[${parts.join(",")}]`;
+    }
+
+    if (val instanceof Set) {
+        const arr = Array.from(val);
+        const len = arr.length;
+        const parts = new Array(len);
+        const nextOpt = { depth: depth + 1, maxDepth };
+        for (let i = 0; i < len; i++) {
+            parts[i] = toCanonicalString(arr[i], nextOpt);
+        }
+        parts.sort();
+        return `set:[${parts.join(",")}]`;
+    }
+
+    if (val instanceof Map) {
+        const keys = Array.from(val.keys());
+        const len = keys.length;
+        const parts = new Array(len);
+        const nextOpt = { depth: depth + 1, maxDepth };
+        for (let i = 0; i < len; i++) {
+            const k = keys[i];
+            parts[i] = `${toCanonicalString(k, nextOpt)}:${toCanonicalString(val.get(k), nextOpt)}`;
+        }
+        parts.sort();
+        return `map:{${parts.join(",")}}`;
+    }
+
+    if (typeof val === "object" && typeof val.toJSON === "function") {
+        return `j:${toCanonicalString(val.toJSON(), { depth: depth + 1, maxDepth })}`;
+    }
+
+    if (isPlainObj(val)) {
+        const keys = Object.keys(val).sort();
+        const len = keys.length;
+        const parts = new Array(len);
+        const nextOpt = { depth: depth + 1, maxDepth };
+        for (let i = 0; i < len; i++) {
+            const k = keys[i];
+            parts[i] = `${k}:${toCanonicalString(val[k], nextOpt)}`;
+        }
+        return `o:{${parts.join(",")}}`;
+    }
+
+    if (val instanceof RegExp) {
+        return `r:${val.toString()}`;
+    }
+
+    if (typeof val === "function") {
+        return `f:${val.toString()}`;
+    }
+
+    if (typeof val === "string") {
+        return `s:${val}`;
+    }
+
+    if (typeof val === "symbol") {
+        return `y:${val.toString()}`;
+    }
+
+    return `${typeof val}:${val}`;
 }

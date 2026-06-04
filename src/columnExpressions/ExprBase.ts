@@ -1,6 +1,5 @@
-import type { IExpr, OpFn, AggFn, ColumnData, ColumnDict } from "../types"
+import type { IExpr, OpFn, AggFn, ColumnData, ColumnDict, RegisteredDataType } from "../types"
 import { isArrayOrTypedArray, isColExpr } from "../utils"
-import type { DataType } from "../datatypes"
 import { ALL_COLUMNS_MARKER } from "./constants"
 
 export const kleeneUnary = (fn: (v: any) => any) => {
@@ -73,7 +72,7 @@ export class ExprBase implements IExpr {
         return newInst;
     }
 
-    cast(dataType: DataType): this {
+    cast(dataType: RegisteredDataType): this {
         return derive(this, (vArray) => {
             const height = vArray.length;
             const result = new Array(height);

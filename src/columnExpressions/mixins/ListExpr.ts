@@ -1,7 +1,8 @@
 import type { ExprConstructor } from "../types";
 import { kleeneUnary, derive } from "../ExprBase";
-import { isArrayOrTypedArray, getListStats, sortList, computeMedian } from "../../utils";
+import { isArrayOrTypedArray, getListStats, sortList, computeMedian, getUniqueListStats, computeMode } from "../../utils";
 import { ComputeError } from "../../exceptions";
+import type { UniqueListStatsOptions } from "../../types";
 
 export class ListExprNamespace {
     constructor(public expr: any) { }
@@ -176,34 +177,13 @@ export class ListExprNamespace {
 
     mode() {
         return this._deriveList((arr) => {
-            const len = (arr as any).length;
-            const counts = new Map<any, number>();
-            let maxCount = 0;
-
-            for (let i = 0; i < len; i++) {
-                const val = (arr as any)[i];
-                if (val == null) continue;
-                const c = (counts.get(val) ?? 0) + 1;
-                counts.set(val, c);
-                if (c > maxCount) maxCount = c;
-            }
-
-            if (maxCount === 0) return [];
-
-            const modes: any[] = [];
-            for (const [val, c] of counts.entries()) {
-                if (c === maxCount) {
-                    modes.push(val);
-                }
-            }
-
-            return sortList(modes);
+            return computeMode(arr as any);
         });
     }
 
-    n_unique() {
+    n_unique(options: UniqueListStatsOptions = {}) {
         return this._deriveList((arr) => {
-            return new Set(Array.from(arr as any)).size;
+            return getUniqueListStats(arr as any, options).count;
         });
     }
 
@@ -230,9 +210,9 @@ export class ListExprNamespace {
         return this._deriveList((arr) => getListStats(arr).sum);
     }
 
-    unique() {
+    unique(options: UniqueListStatsOptions = {}) {
         return this._deriveList((arr) => {
-            return Array.from(new Set(arr as any));
+            return getUniqueListStats(arr as any, options).values;
         });
     }
 }

@@ -1,8 +1,10 @@
-import type { AggFn } from "../../types"
+import type { AggFn, UniqueListStatsOptions } from "../../types"
 import type { ExprConstructor } from "../types"
 import { derive } from "../ExprBase"
 import { ComputeError } from "../../exceptions"
-import { getListStats, isArrayOrTypedArray, computeMedian, computeQuantile } from "../../utils"
+import { getListStats, computeMedian, computeQuantile, getUniqueListStats, computeMode } from "../../utils"
+
+
 
 export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
@@ -86,47 +88,13 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         }
 
         mode() {
-            return this._deriveAgg(v => {
-                if (!isArrayOrTypedArray(v)) return null;
-                const len = (v as any).length;
-
-                const counts = new Map<any, number>();
-                let maxCount = 0;
-
-                for (let i = 0; i < len; i++) {
-                    const val = (v as any)[i];
-                    if (val == null) continue;
-                    const c = (counts.get(val) ?? 0) + 1;
-                    counts.set(val, c);
-                    if (c > maxCount) maxCount = c;
-                }
-
-                if (maxCount === 0) return null;
-
-                const modes: any[] = [];
-                for (const [val, c] of counts.entries()) {
-                    if (c === maxCount) {
-                        modes.push(val);
-                    }
-                }
-
-                if (modes.length === 0) return null;
-
-                modes.sort((a, b) => {
-                    if (a == null && b == null) return 0;
-                    if (a == null) return 1;
-                    if (b == null) return -1;
-                    if (a < b) return -1;
-                    if (a > b) return 1;
-                    return 0;
-                });
-
-                return modes[0];
-            });
+            return this._deriveAgg(v => computeMode(v));
         }
 
-        n_unique() {
-            return this._deriveAgg(v => new Set(v).size);
+        n_unique(options: UniqueListStatsOptions = {}) {
+            return this._deriveAgg(v => {
+                return getUniqueListStats(v, options).count;
+            });
         }
 
         quantile(q: number) {

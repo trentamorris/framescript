@@ -1,7 +1,7 @@
-import type { IExpr, ColumnData, ColumnDict } from "../types"
-import { DataType, DataTypeRegistry } from "../datatypes"
+import type { IExpr, ColumnData, ColumnDict, RegisteredDataType } from "../types"
+import { DataTypeRegistry } from "../datatypes"
 import { KEY_SEPARATOR } from "./constants"
-import { isObj, isTypedArray } from "../utils"
+import { isObj, isTypedArray, toCanonicalString } from "../utils"
 import { assertColumnExists } from "../exceptions"
 
 function partition_by_columns(
@@ -27,7 +27,7 @@ function partition_by_columns(
         const keyValues = new Array(pKeysLen);
         for (let j = 0; j < pKeysLen; j++) {
             const val = keyColumns[j][i];
-            keyValues[j] = val == null ? "" : String(val);
+            keyValues[j] = val == null ? "" : toCanonicalString(val);
         }
         const hash = keyValues.join(KEY_SEPARATOR);
         let group = partitionMap.get(hash);
@@ -135,7 +135,7 @@ export function getRowFromColumns(columns: ColumnDict, idx: number, keys: string
     return row;
 }
 
-export function inferColumnType(col: ColumnData): DataType {
+export function inferColumnType(col: ColumnData): RegisteredDataType {
     if (col.length === 0) return DataTypeRegistry.Utf8;
     let isBoolean = true;
     let isInteger = true;
@@ -224,12 +224,12 @@ export function computeRowHash(columns: ColumnDict, keys: string[], rowIndex: nu
     const len = keys.length;
     if (len === 1) {
         const val = columns[keys[0]][rowIndex];
-        return val == null ? "" : String(val);
+        return val == null ? "" : toCanonicalString(val);
     }
     const vals = new Array(len);
     for (let i = 0; i < len; i++) {
         const val = columns[keys[i]][rowIndex];
-        vals[i] = val == null ? "" : String(val);
+        vals[i] = val == null ? "" : toCanonicalString(val);
     }
     return vals.join(KEY_SEPARATOR);
 }
