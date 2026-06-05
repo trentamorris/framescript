@@ -100,15 +100,15 @@ if (collectedGatherDup[0].val !== 1 || collectedGatherDup[1].val !== 3 || collec
     throw new Error("Gather duplicate values mismatch");
 }
 
-// 4.8 Gather with config object step
-const dfGatherConfig = df.gather({ every: 2, offset: 1 });
-if (dfGatherConfig.height !== 2) throw new Error("Gather config step height mismatch");
-const collectedGatherConfig = dfGatherConfig.to_dicts();
-if (collectedGatherConfig[0].val !== 2 || collectedGatherConfig[1].val !== 4) {
-    throw new Error("Gather config step values mismatch");
+// 4.8 gather_every with positive offset
+const dfGatherEveryOffset = df.gather_every(2, 1);
+if (dfGatherEveryOffset.height !== 2) throw new Error("gather_every offset height mismatch");
+const collectedGatherEveryOffset = dfGatherEveryOffset.to_dicts();
+if (collectedGatherEveryOffset[0].val !== 2 || collectedGatherEveryOffset[1].val !== 4) {
+    throw new Error("gather_every offset values mismatch");
 }
 
-// 4.9 gather_every wrapper
+// 4.9 gather_every wrapper (default offset = 0)
 const dfGatherEvery = df.gather_every(2, 0);
 if (dfGatherEvery.height !== 3) throw new Error("gather_every height mismatch");
 const collectedGatherEvery = dfGatherEvery.to_dicts();
@@ -116,12 +116,12 @@ if (collectedGatherEvery[0].val !== 1 || collectedGatherEvery[1].val !== 3 || co
     throw new Error("gather_every values mismatch");
 }
 
-// 4.10 Gather with negative offset (stepping right-to-left)
-const dfGatherNegOffset = df.gather({ every: 2, offset: -1 });
-if (dfGatherNegOffset.height !== 3) throw new Error("Gather negative offset height mismatch");
-const collectedGatherNegOffset = dfGatherNegOffset.to_dicts();
-if (collectedGatherNegOffset[0].val !== 5 || collectedGatherNegOffset[1].val !== 3 || collectedGatherNegOffset[2].val !== 1) {
-    throw new Error("Gather negative offset values mismatch");
+// 4.10 gather_every with negative offset (stepping right-to-left)
+const dfGatherEveryNeg = df.gather_every(2, -1);
+if (dfGatherEveryNeg.height !== 3) throw new Error("gather_every negative offset height mismatch");
+const collectedGatherEveryNeg = dfGatherEveryNeg.to_dicts();
+if (collectedGatherEveryNeg[0].val !== 5 || collectedGatherEveryNeg[1].val !== 3 || collectedGatherEveryNeg[2].val !== 1) {
+    throw new Error("gather_every negative offset values mismatch");
 }
 
 console.log("✓ limit and slice tests passed!");

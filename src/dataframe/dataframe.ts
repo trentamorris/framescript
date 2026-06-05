@@ -561,35 +561,12 @@ export class DataFrame<T extends RowRecord = any> {
         return [this.height, this.width];
     }
 
-    gather(
-        indices: number | number[] | { every: number; offset?: number },
-        options: { null_on_oob?: boolean } = {}
-    ): DataFrame<T> {
+    gather(indices: number | number[], options: { null_on_oob?: boolean } = {}): DataFrame<T> {
         const nullOnOob = options?.null_on_oob ?? false;
-        const total = this._height;
-        let idxs: number[];
-
-        if (isObj(indices) && "every" in indices) {
-            const { every, offset = 0 } = indices as { every: number; offset?: number };
-            if (every <= 0) {
-                throw new DataFrameError("Step size every must be positive");
-            }
-            idxs = [];
-            if (offset < 0) {
-                const actualOffset = total + offset;
-                for (let i = actualOffset; i >= 0; i -= every) {
-                    idxs.push(i);
-                }
-            } else {
-                for (let i = offset; i < total; i += every) {
-                    idxs.push(i);
-                }
-            }
-        } else {
-            idxs = Array.isArray(indices) ? indices : [indices as any];
-        }
-
+        const idxs = Array.isArray(indices) ? indices : [indices];
         const numIndices = idxs.length;
+        const total = this._height;
+
         const mappedIndices = new Array(numIndices);
         for (let i = 0; i < numIndices; i++) {
             const index = idxs[i];
@@ -637,7 +614,22 @@ export class DataFrame<T extends RowRecord = any> {
     }
 
     gather_every(n: number, offset: number = 0): DataFrame<T> {
-        return this.gather({ every: n, offset });
+        if (n <= 0) {
+            throw new DataFrameError("Step size n must be positive");
+        }
+        const total = this._height;
+        const idxs: number[] = [];
+        if (offset < 0) {
+            const actualOffset = total + offset;
+            for (let i = actualOffset; i >= 0; i -= n) {
+                idxs.push(i);
+            }
+        } else {
+            for (let i = offset; i < total; i += n) {
+                idxs.push(i);
+            }
+        }
+        return this.gather(idxs);
     }
 
     slice(start: number, end?: number): DataFrame<T> {
