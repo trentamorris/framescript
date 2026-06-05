@@ -206,18 +206,15 @@ export function gatherEvery<T>(arr: ArrayLike<T>, n: number, offset: number = 0)
         throw new Error("Step size n cannot be zero");
     }
     const len = arr.length;
-    const step = Math.abs(n);
-    const isBackward = n < 0 || offset < 0;
+    const start = offset < 0 ? len + offset : offset;
 
     const res: T[] = [];
-    if (isBackward) {
-        let start = offset < 0 ? len + offset : offset;
-        for (let i = start; i >= 0 && i < len; i -= step) {
+    if (n > 0) {
+        for (let i = start; i < len && i >= 0; i += n) {
             res.push(arr[i]);
         }
     } else {
-        let start = offset;
-        for (let i = start; i < len && i >= 0; i += step) {
+        for (let i = start; i >= 0 && i < len; i += n) {
             res.push(arr[i]);
         }
     }
