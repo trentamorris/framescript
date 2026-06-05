@@ -205,8 +205,8 @@ export function stepSliceList<T>(
     arr: ArrayLike<T>,
     step: number,
     {
-        offsetStart = step > 0 ? 0 : (arr?.length ?? 0) - 1,
-        offsetEnd = step > 0 ? (arr?.length ?? 0) : undefined
+        offsetStart = 0,
+        offsetEnd
     }: {
         offsetStart?: number;
         offsetEnd?: number;
@@ -222,7 +222,7 @@ export function stepSliceList<T>(
     const start = offsetStart < 0 ? len + offsetStart : offsetStart;
     const end = offsetEnd !== undefined
         ? (offsetEnd < 0 ? len + offsetEnd : offsetEnd)
-        : -1;
+        : (step > 0 ? len : -1);
 
     const res: T[] = [];
     if (step > 0) {
