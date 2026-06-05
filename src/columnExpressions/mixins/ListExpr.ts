@@ -23,13 +23,13 @@ export class ListExprNamespace {
 
     contains(item: any) {
         return this._deriveList((arr) => {
-            return Array.from(arr as any).includes(item);
+            return (arr as any).includes(item);
         });
     }
 
     contains_all(items: any[]) {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
+            const list = arr as any;
             for (let i = 0; i < items.length; i++) {
                 if (!list.includes(items[i])) return false;
             }
@@ -39,7 +39,7 @@ export class ListExprNamespace {
 
     contains_any(items: any[]) {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
+            const list = arr as any;
             for (let i = 0; i < items.length; i++) {
                 if (list.includes(items[i])) return true;
             }
@@ -49,10 +49,11 @@ export class ListExprNamespace {
 
     count_matches(item: any) {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
+            const list = arr as any;
             let count = 0;
-            for (const val of list) {
-                if (val === item) {
+            const len = list.length;
+            for (let i = 0; i < len; i++) {
+                if (list[i] === item) {
                     count++;
                 }
             }
@@ -62,9 +63,10 @@ export class ListExprNamespace {
 
     drop_nulls() {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
+            const list = arr as any;
+            const len = list.length;
             const result: any[] = [];
-            for (let i = 0; i < list.length; i++) {
+            for (let i = 0; i < len; i++) {
                 if (list[i] != null) result.push(list[i]);
             }
             return result;
@@ -116,11 +118,13 @@ export class ListExprNamespace {
         });
     }
 
-    join(separator: string, { ignoreNulls = false }: { ignoreNulls?: boolean } = {}) {
+    join(separator: string = ",", options: { ignoreNulls?: boolean } = {}) {
+        const ignoreNulls = options?.ignoreNulls ?? false;
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
+            const list = arr as any;
+            const len = list.length;
             const strList: string[] = [];
-            for (let i = 0; i < list.length; i++) {
+            for (let i = 0; i < len; i++) {
                 const x = list[i];
                 if (x != null) {
                     strList.push(String(x));
@@ -156,7 +160,7 @@ export class ListExprNamespace {
     }
 
     median() {
-        return this._deriveList((arr) => computeMedian(Array.from(arr as any)));
+        return this._deriveList((arr) => computeMedian(arr as any));
     }
 
     min() {
@@ -177,15 +181,16 @@ export class ListExprNamespace {
 
     reverse() {
         return this._deriveList((arr) => {
-            return Array.from(arr as any).reverse();
+            return (arr as any).slice().reverse();
         });
     }
 
     slice(offset: number, length?: number) {
         return this._deriveList((arr) => {
-            const list = Array.from(arr as any);
-            const start = offset < 0 ? Math.max(0, list.length + offset) : offset;
-            const end = length !== undefined ? start + length : list.length;
+            const list = arr as any;
+            const len = list.length;
+            const start = offset < 0 ? Math.max(0, len + offset) : offset;
+            const end = length !== undefined ? start + length : len;
             return list.slice(start, end);
         });
     }
