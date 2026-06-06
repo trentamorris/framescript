@@ -235,13 +235,14 @@ export interface StepSliceListOptions {
 
 export function stepSliceList<T>(
     arr: ArrayLike<T>,
-    {
+    options: StepSliceListOptions = {}
+): T[] {
+    const {
         step = 1,
         offsetStart = 0,
         offsetEnd,
         maxItemsGathered
-    }: StepSliceListOptions = {}
-): T[] {
+    } = options;
     if (arr == null || (maxItemsGathered !== undefined && maxItemsGathered <= 0)) {
         return [];
     }
