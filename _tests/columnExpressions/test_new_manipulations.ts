@@ -448,9 +448,9 @@ try {
         throw new Error("Expected repeat strict mode to throw ShapeError for smaller n");
     }
 
-    // 5. Non-strict mode: n = 5 (larger, should truncate to 3)
+    // 5. Non-strict mode: n = 5 with truncate: true (larger, should truncate to 3)
     const repeatTruncated = testRepeatDf.select([
-        $df.repeat("a", { n: 5, strict: false }).alias("truncated")
+        $df.repeat("a", { n: 5, truncate: true }).alias("truncated")
     ]).to_dicts();
     if (repeatTruncated.length !== 3) throw new Error("repeat non-strict larger length mismatch");
     for (let i = 0; i < 3; i++) {
@@ -459,9 +459,9 @@ try {
         }
     }
 
-    // 6. Non-strict mode: n = 2 (smaller, should pad with nulls to 3)
+    // 6. Non-strict mode: n = 2 with pad: true (smaller, should pad with nulls to 3)
     const repeatPadded = testRepeatDf.select([
-        $df.repeat("b", { n: 2, strict: false }).alias("padded")
+        $df.repeat("b", { n: 2, pad: true }).alias("padded")
     ]).to_dicts();
     if (repeatPadded.length !== 3) throw new Error("repeat non-strict smaller length mismatch");
     if (repeatPadded[0].padded !== "b" || repeatPadded[1].padded !== "b") {
@@ -471,7 +471,72 @@ try {
         throw new Error("repeat non-strict smaller padding failed");
     }
 
-    // 7. Type coercion: custom dtype specified
+    // 7. Error: strict: false without either pad or truncate
+    let errorNoStrategy = false;
+    try {
+        $df.repeat("x", { n: 3, strict: false });
+    } catch (e: any) {
+        if (e.message.includes("either pad or truncate must be set to true")) {
+            errorNoStrategy = true;
+        }
+    }
+    if (!errorNoStrategy) {
+        throw new Error("Expected repeat to throw error if strict is false without strategy");
+    }
+
+    // 8. Error: pad and truncate both set to true
+    let errorMutualExclusive = false;
+    try {
+        $df.repeat("x", { n: 3, pad: true, truncate: true });
+    } catch (e: any) {
+        if (e.message.includes("mutually exclusive")) {
+            errorMutualExclusive = true;
+        }
+    }
+    if (!errorMutualExclusive) {
+        throw new Error("Expected repeat to throw error if both pad and truncate are true");
+    }
+
+    // 9. Error: strict: true and pad/truncate set to true
+    let errorStrictConflict = false;
+    try {
+        $df.repeat("x", { n: 3, strict: true, pad: true });
+    } catch (e: any) {
+        if (e.message.includes("Cannot set strict to true when pad or truncate is enabled")) {
+            errorStrictConflict = true;
+        }
+    }
+    if (!errorStrictConflict) {
+        throw new Error("Expected repeat to throw error on strict conflict with pad/truncate");
+    }
+
+    // 10. ShapeError: pad is true but requires truncation (n = 5 > height 3)
+    let shapeErrorPadLarger = false;
+    try {
+        testRepeatDf.select($df.repeat("y", { n: 5, pad: true }));
+    } catch (e: any) {
+        if (e instanceof ShapeError && e.message.includes("Cannot pad repeat output")) {
+            shapeErrorPadLarger = true;
+        }
+    }
+    if (!shapeErrorPadLarger) {
+        throw new Error("Expected repeat to throw ShapeError when pad: true requires truncation");
+    }
+
+    // 11. ShapeError: truncate is true but requires padding (n = 2 < height 3)
+    let shapeErrorTruncateSmaller = false;
+    try {
+        testRepeatDf.select($df.repeat("y", { n: 2, truncate: true }));
+    } catch (e: any) {
+        if (e instanceof ShapeError && e.message.includes("Cannot truncate repeat output")) {
+            shapeErrorTruncateSmaller = true;
+        }
+    }
+    if (!shapeErrorTruncateSmaller) {
+        throw new Error("Expected repeat to throw ShapeError when truncate: true requires padding");
+    }
+
+    // 12. Type coercion: custom dtype specified
     const repeatCoerced = testRepeatDf.select([
         $df.repeat("123", { n: 3, dtype: $df.DataType.Int32 }).alias("coerced")
     ]).to_dicts();
