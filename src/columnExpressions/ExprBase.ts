@@ -40,7 +40,8 @@ export const derive = <T extends IExpr>(
     nextOp?: OpFn
 ): T => {
     const Constructor = instance.constructor as any;
-    const newInst = new Constructor((instance as any).colName || "");
+    const colNameVal = (instance as any).colNames || (instance as any).colName || "";
+    const newInst = new Constructor(colNameVal);
     Object.assign(newInst, instance);
     newInst.ops = nextOp ? [...instance.ops, nextOp] : [...instance.ops];
     return newInst;
@@ -66,7 +67,8 @@ export class ExprBase implements IExpr {
 
     alias(name: string): this {
         const Constructor = this.constructor as any;
-        const newInst = new Constructor((this as any).colName || "");
+        const colNameVal = (this as any).colNames || (this as any).colName || "";
+        const newInst = new Constructor(colNameVal);
         Object.assign(newInst, this);
         newInst.outputName = name;
         return newInst;

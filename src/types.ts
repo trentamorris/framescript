@@ -18,6 +18,8 @@ export type Scalar = string | number | boolean | bigint | Date | null | undefine
 export type AggFn<V, R = any> = (values: V[]) => R;
 export type OpFn = (vals: ColumnData, columns: ColumnDict) => ColumnData;
 
+export type IntoExpr = string | IExpr;
+
 export interface IExpr {
     ops: OpFn[];
     colName?: string;

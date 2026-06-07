@@ -19,7 +19,8 @@ import "./with_columns.test";
 import "./reverse.test";
 import "./robustness.test";
 import "./exceptions.test";
+import "./test_schema";
 
 console.log("=========================================");
-console.log("🎉 ALL 18 DATAFRAME TESTS PASSED SUCCESSFULLY!");
+console.log("🎉 ALL 19 DATAFRAME TESTS PASSED SUCCESSFULLY!");
 console.log("=========================================");

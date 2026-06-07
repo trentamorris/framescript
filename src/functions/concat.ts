@@ -97,7 +97,17 @@ export function concat<U extends RowRecord = any>(
                 newHeight += item.height;
             }
 
-            const outSchema = items.find(df => df.height > 0)?.schema || items[0]?.schema || {};
+            let outSchema: DataFrameSchema = {};
+            const itemsLen = items.length;
+            for (let i = 0; i < itemsLen; i++) {
+                if (items[i].height > 0) {
+                    outSchema = items[i].schema;
+                    break;
+                }
+            }
+            if (Object.keys(outSchema).length === 0 && itemsLen > 0) {
+                outSchema = items[0].schema;
+            }
             const newColumns: Record<string, ArrayLike<any>> = {};
 
             for (const key of firstKeys) {

@@ -47,6 +47,10 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
             return this._deriveAgg(v => v[0] ?? null);
         }
 
+        implode() {
+            return this._deriveAgg(v => v);
+        }
+
         last() {
             return this._deriveAgg(v => v[v.length - 1] ?? null);
         }
@@ -89,5 +93,6 @@ export const AggregationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
         sum() {
             return this._deriveAgg(v => getListStats(v).sum);
         }
+
     }
 }

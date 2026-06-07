@@ -225,8 +225,8 @@ try {
         tags: (string | null)[] | null;
         info: { val: number | null } | null;
     };
-    const rows = inferredSchemaDf.to_dicts();
-    const _checkRows: ExpectedRow[] = rows;
+    const rows: ExpectedRow[] = inferredSchemaDf.to_dicts();
+    if (!Array.isArray(rows)) throw new Error("Expected rows to be an array");
 
     console.log("🎉 ALL UTILS TYPES TESTS PASSED SUCCESSFULLY!");
 } catch (err) {

@@ -156,6 +156,52 @@ try {
     if (JSON.stringify(agg0.mode_id) !== JSON.stringify([1, 2])) throw new Error(`agg0.mode_id failed, got ${JSON.stringify(agg0.mode_id)}`);
     if (agg0.first_mode_id !== 1) throw new Error(`agg0.first_mode_id failed, got ${agg0.first_mode_id}`);
     if (agg0.last_mode_id !== 2) throw new Error(`agg0.last_mode_id failed, got ${agg0.last_mode_id}`);
+
+    // Test fill_nan, drop_nulls, drop_nans, explode, implode
+    const structuralData = [
+        { group: "A", val: 1.5, list: [1, 2] },
+        { group: "A", val: null, list: [] },
+        { group: "B", val: null, list: null },
+        { group: "B", val: 2.3, list: [3, 4] }
+    ];
+    const structuralDf = $df.data(structuralData);
+
+
+    // Test implode aggregation
+    const groupedImplode = structuralDf.groupby("group").agg([
+        $df.col("val").implode().alias("imploded_vals"),
+        $df.implode("val").alias("imploded_fn"),
+        $df.implode(["val", "list"])
+    ]).to_dicts();
+
+    console.log("Grouped implode results:");
+    console.dir(groupedImplode, { depth: null });
+
+    const groupA = groupedImplode.find(r => r.group === "A");
+    const groupB = groupedImplode.find(r => r.group === "B");
+    if (!groupA || groupA.imploded_vals.length !== 2 || groupA.imploded_vals[0] !== 1.5 || groupA.imploded_vals[1] !== null) {
+        throw new Error("group A implode failed");
+    }
+    if (JSON.stringify(groupA.imploded_fn) !== JSON.stringify(groupA.imploded_vals)) {
+        throw new Error("group A implode fn failed");
+    }
+    if (JSON.stringify(groupA.val) !== JSON.stringify(groupA.imploded_vals)) {
+        throw new Error("group A col([...]) implode failed");
+    }
+    if (JSON.stringify(groupA.list) !== JSON.stringify([[1, 2], []])) {
+        throw new Error("group A col([...]) list implode failed: " + JSON.stringify(groupA.list));
+    }
+
+    if (!groupB || groupB.imploded_vals.length !== 2 || groupB.imploded_vals[0] !== null || groupB.imploded_vals[1] !== 2.3) {
+        throw new Error("group B implode failed");
+    }
+    if (JSON.stringify(groupB.val) !== JSON.stringify(groupB.imploded_vals)) {
+        throw new Error("group B col([...]) implode failed");
+    }
+    if (JSON.stringify(groupB.list) !== JSON.stringify([null, [3, 4]])) {
+        throw new Error("group B col([...]) list implode failed: " + JSON.stringify(groupB.list));
+    }
+
     console.log("\n🎉 ALL Expr NEW MANIPULATIONS TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("\n❌ Expr NEW MANIPULATIONS TESTS FAILED:", err);

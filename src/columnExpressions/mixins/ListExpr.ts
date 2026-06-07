@@ -57,6 +57,7 @@ export class ListExprNamespace {
         });
     }
 
+
     first(null_on_oob: boolean = true) {
         return this.get(0, null_on_oob);
     }
@@ -160,6 +161,7 @@ export class ListExprNamespace {
     unique(options: UniqueListStatsOptions = {}) {
         return this._deriveList((arr: any) => getUniqueListStats(arr, options).values);
     }
+
 }
 
 export const ListExpr = <TBase extends ExprConstructor>(Base: TBase) => {

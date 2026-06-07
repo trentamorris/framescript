@@ -23,6 +23,21 @@ function partition_by_columns(
         }
     }
 
+    if (pKeysLen === 1) {
+        const keyCol = keyColumns[0];
+        for (let i = 0; i < height; i++) {
+            const val = keyCol[i];
+            const hash = val == null ? "" : toCanonicalString(val);
+            let group = partitionMap.get(hash);
+            if (group === undefined) {
+                group = [];
+                partitionMap.set(hash, group);
+            }
+            group.push(i);
+        }
+        return partitionMap;
+    }
+
     for (let i = 0; i < height; i++) {
         const keyValues = new Array(pKeysLen);
         for (let j = 0; j < pKeysLen; j++) {
@@ -243,21 +258,29 @@ export function computeRowHash(columns: ColumnDict, keys: string[], rowIndex: nu
 }
 
 export function coerceColumn(col: ColumnData, type: RegisteredDataType, height: number): ColumnData {
-    let newCol: any = type.allocate ? type.allocate(height) : new Array(height).fill(null);
-    let hasNulls = false;
-    const coercedVals = new Array(height);
-    for (let i = 0; i < height; i++) {
-        const coerced = type.coerce(col[i]);
-        coercedVals[i] = coerced;
-        if (coerced == null) {
-            hasNulls = true;
+    let newCol: any = type.allocate ? type.allocate(height) : new Array(height);
+    const isTyped = isTypedArray(newCol);
+    if (isTyped) {
+        const typedCol = newCol as any;
+        for (let i = 0; i < height; i++) {
+            const coerced = type.coerce(col[i]);
+            if (coerced == null) {
+                const fallback = new Array(height);
+                for (let j = 0; j < i; j++) {
+                    fallback[j] = typedCol[j];
+                }
+                fallback[i] = null;
+                for (let j = i + 1; j < height; j++) {
+                    fallback[j] = type.coerce(col[j]);
+                }
+                return fallback;
+            }
+            typedCol[i] = coerced;
         }
-    }
-    if (hasNulls && isTypedArray(newCol)) {
-        newCol = new Array(height);
-    }
-    for (let i = 0; i < height; i++) {
-        newCol[i] = coercedVals[i];
+    } else {
+        for (let i = 0; i < height; i++) {
+            newCol[i] = type.coerce(col[i]);
+        }
     }
     return newCol;
 }

@@ -1,4 +1,3 @@
-
 import type { ExprConstructor } from "../types"
 import { derive } from "../ExprBase"
 import { isArrayOrTypedArray } from "../../utils"
@@ -24,6 +23,7 @@ export const ManipulationExpr = <TBase extends ExprConstructor>(Base: TBase) => 
                 return result;
             }) as this;
         }
+
 
         reverse(): this {
             return derive(this, (vArray) => {

@@ -1,5 +1,5 @@
 import { DataFrame } from "./dataframe"
-import { ColumnExpr, lit, all, exclude, coalesce, when } from "./columnExpressions"
+import { ColumnExpr, lit, all, exclude, coalesce, when, implode } from "./columnExpressions"
 import { DataTypeRegistry } from "./datatypes"
 import { concat } from "./functions"
 import type { RowRecord, DataFrameSchema, ColumnDict, InferSchema } from "./types"
@@ -12,12 +12,13 @@ function data(data: any[] | ColumnDict, schema?: DataFrameSchema): DataFrame<any
 
 export const $df = {
     data,
-    col: <T = any>(name: keyof T | string) => new ColumnExpr<T>(name),
+    col: <T = any>(name: keyof T | string | (keyof T | string)[]) => new ColumnExpr<T>(name),
     all,
     exclude,
     coalesce,
     concat,
     lit,
     when,
+    implode,
     DataType: DataTypeRegistry
 };

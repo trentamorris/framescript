@@ -19,6 +19,7 @@ export * from "./functions/all"
 export * from "./functions/exclude"
 export * from "./functions/coalesce"
 export * from "./functions/when"
+export * from "./functions/implode"
 
 export function resolveColumnSelectors(
     exprs: any[],
@@ -49,6 +50,22 @@ export function resolveColumnSelectors(
                     }
                     expanded.push(concrete);
                 }
+            }
+        } else if (expr instanceof ColumnExpr && expr.colNames && expr.colNames.length > 0) {
+            for (const name of expr.colNames) {
+                const concrete = new ColumnExpr(name);
+                concrete.ops = [...expr.ops];
+                concrete.aggFn = expr.aggFn;
+                concrete.partitionOpsIndex = expr.partitionOpsIndex;
+                concrete.groupingOpsIndex = expr.groupingOpsIndex;
+                concrete.partitionBy = expr.partitionBy;
+                if (expr.evaluateWindow) {
+                    concrete.evaluateWindow = expr.evaluateWindow;
+                }
+                if (expr.outputName) {
+                    concrete.outputName = expr.outputName;
+                }
+                expanded.push(concrete);
             }
         } else if (expr && typeof expr === 'object' && 'evaluate' in expr && !expr.colName) {
             for (const key of allKeys) {
