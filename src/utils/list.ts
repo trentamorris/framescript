@@ -452,3 +452,162 @@ export function joinList(
 
     return prefix + strList.join(separator) + (truncated ? truncationMarker : "") + suffix;
 }
+
+export interface FillSeqBaseOptions {
+    /**
+     * Type coercion helper applied to each generated value before writing.
+     * 
+     * @param v The newly generated candidate value.
+     * @returns The coerced value to write to the array.
+     */
+    coerce?: (v: any) => any;
+
+    /**
+     * Conditional predicate determining if a value should be replaced at a given index.
+     * 
+     * @param v The original/current value at the target index.
+     * @param index The absolute index of the current element.
+     * @param array The entire target array.
+     * @returns True if the candidate value should overwrite the original value, false otherwise.
+     */
+    condition?: (v: any, index: number, array: any[]) => boolean;
+
+    /**
+     * If true, iterates and populates in reverse (from startIndex down to endIndex).
+     * @default false
+     */
+    reverse?: boolean;
+
+    /**
+     * The index at which array iteration and writing begins.
+     * @default reverse ? length - 1 : 0
+     */
+    startIndex?: number;
+
+    /**
+     * The exclusive boundary index at which iteration and writing stops.
+     * @default reverse ? -1 : length
+     */
+    endIndex?: number;
+}
+
+export interface CumulativeStepContext {
+    /** The accumulated value returned by the step function from the previous stepped index. */
+    prev: any;
+    /** The relative iteration counter of the stepping process (starts at 1). */
+    index: number;
+    /** The original value at the current index in the target array. */
+    originalValue: any;
+    /** The absolute index of the current element in the parent array. */
+    absoluteIndex: number;
+    /** The entire target array being populated/modified. */
+    targetArray: any;
+}
+
+export interface IndependentStepContext {
+    /** The relative iteration counter of the generation process (starts at 0). */
+    index: number;
+    /** The static starting value passed to the sequence generator. */
+    initialValue: any;
+    /** The original value at the current index in the target array. */
+    originalValue: any;
+    /** The absolute index of the current element in the parent array. */
+    absoluteIndex: number;
+    /** The entire target array being populated/modified. */
+    targetArray: any;
+}
+
+export type FillSeqOptions = FillSeqBaseOptions & (
+    | {
+          mode: "constant";
+          step?: never;
+      }
+    | {
+          mode?: "cumulative";
+          step?: number | ((context: CumulativeStepContext) => any);
+      }
+    | {
+          mode: "independent";
+          step?: number | ((context: IndependentStepContext) => any);
+      }
+);
+
+export function fillSequence(
+    targetArray: any,
+    initialValue: any,
+    options: FillSeqOptions = {}
+): void {
+    const len = targetArray.length;
+    const {
+        mode = "cumulative",
+        step = 1,
+        coerce = (v: any) => v,
+        condition,
+        reverse = false,
+        startIndex = reverse ? len - 1 : 0,
+        endIndex = reverse ? -1 : len
+    } = options as any;
+
+    const increment = reverse ? -1 : 1;
+    const start = startIndex;
+    const end = endIndex;
+
+    const writeVal = (idx: number, val: any) => {
+        if (!condition || condition(targetArray[idx], idx, targetArray)) {
+            targetArray[idx] = coerce(val);
+        }
+    };
+
+    if (mode === "constant") {
+        const finalVal = coerce(initialValue);
+        for (let i = start; reverse ? i > end : i < end; i += increment) {
+            writeVal(i, finalVal);
+        }
+    } else if (mode === "independent") {
+        if (typeof step === "function") {
+            let relativeIdx = 0;
+            for (let i = start; reverse ? i > end : i < end; i += increment) {
+                writeVal(
+                    i,
+                    step({
+                        index: relativeIdx,
+                        initialValue,
+                        originalValue: targetArray[i],
+                        absoluteIndex: i,
+                        targetArray
+                    })
+                );
+                relativeIdx++;
+            }
+        } else {
+            for (let i = start; reverse ? i > end : i < end; i += increment) {
+                writeVal(i, initialValue + i * step);
+            }
+        }
+    } else {
+        // cumulative mode
+        let current = initialValue;
+        let isFirst = true;
+        let relativeIdx = 0;
+        for (let i = start; reverse ? i > end : i < end; i += increment) {
+            if (isFirst) {
+                writeVal(i, current);
+                isFirst = false;
+            } else {
+                if (typeof step === "function") {
+                    current = step({
+                        prev: current,
+                        index: relativeIdx,
+                        originalValue: targetArray[i],
+                        absoluteIndex: i,
+                        targetArray
+                    });
+                } else {
+                    current = current + step;
+                }
+                writeVal(i, current);
+            }
+            relativeIdx++;
+        }
+    }
+}

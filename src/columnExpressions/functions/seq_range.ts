@@ -2,7 +2,7 @@ import { ColumnExpr } from "../ColumnExpr";
 import { LITERAL_MARKER } from "../constants";
 import { ShapeError } from "../../exceptions";
 import type { RegisteredDataType, FlattenUnion } from "../../types";
-import { clamp } from "../../utils";
+import { clamp, fillSequence, CumulativeStepContext, IndependentStepContext } from "../../utils";
 
 export type SeqRangeOptions = {
     n?: number;
@@ -11,8 +11,12 @@ export type SeqRangeOptions = {
 } & (
     | { mode: "constant" }
     | {
-        mode?: "cumulative" | "independent";
-        step?: number | ((prevOrIndex: any, index: number) => any);
+          mode?: "cumulative";
+          step?: number | ((context: CumulativeStepContext) => any);
+      }
+    | {
+          mode: "independent";
+          step?: number | ((context: IndependentStepContext) => any);
       }
 ) & (
     | { strict?: true }
@@ -90,46 +94,17 @@ export function seq_range(
             ? (val: any) => opts.dtype!.coerce(val)
             : (val: any) => val;
 
-        const fillSeq = (arr: any, len: number, offset: number) => {
-            if (len <= 0) return;
-            if (mode === "constant") {
-                const finalVal = coerceVal(value);
-                for (let idx = 0; idx < len; idx++) {
-                    arr[offset + idx] = finalVal;
-                }
-            } else if (mode === "independent") {
-                if (typeof step === "function") {
-                    for (let idx = 0; idx < len; idx++) {
-                        arr[offset + idx] = coerceVal(step(idx, value));
-                    }
-                } else {
-                    for (let idx = 0; idx < len; idx++) {
-                        arr[offset + idx] = coerceVal(value + idx * step);
-                    }
-                }
-            } else {
-                // cumulative mode
-                let current = value;
-                arr[offset] = coerceVal(current);
-                if (typeof step === "function") {
-                    for (let idx = 1; idx < len; idx++) {
-                        current = step(current, idx);
-                        arr[offset + idx] = coerceVal(current);
-                    }
-                } else {
-                    for (let idx = 1; idx < len; idx++) {
-                        current = current + step;
-                        arr[offset + idx] = coerceVal(current);
-                    }
-                }
-            }
-        };
-
         if (strict) {
             const result = opts.dtype?.allocate
                 ? opts.dtype.allocate(finalHeight)
                 : new Array(finalHeight);
-            fillSeq(result, finalHeight, 0);
+            fillSequence(result, value, {
+                mode,
+                step,
+                coerce: coerceVal,
+                startIndex: 0,
+                endIndex: finalHeight
+            } as any);
             return result;
         }
 
@@ -149,7 +124,13 @@ export function seq_range(
 
         const result = new Array(finalHeight);
         result.fill(coercedFill);
-        fillSeq(result, repeatEnd - safeStart, safeStart);
+        fillSequence(result, value, {
+            mode,
+            step,
+            coerce: coerceVal,
+            startIndex: safeStart,
+            endIndex: repeatEnd
+        } as any);
 
         return result;
     });

@@ -1,6 +1,6 @@
-import { ColumnExpr, resolveColumnSelectors, ALL_COLUMNS_MARKER, seq_range } from "../columnExpressions"
+import { ColumnExpr, resolveColumnSelectors, ALL_COLUMNS_MARKER, seq_range, all } from "../columnExpressions"
 import { GroupedData } from "./grouped/grouped"
-import type { IExpr, ColumnData, ColumnDict, DataFrameColumns, ConcatOptions, ConcatItem, HorizontalConcatOptions, RowRecord, DataFrameSchema, RegisteredDataType, ExplodeOptions, IntoExpr } from "../types"
+import type { IExpr, ColumnData, ColumnDict, DataFrameColumns, ConcatOptions, ConcatItem, HorizontalConcatOptions, RowRecord, DataFrameSchema, RegisteredDataType, ExplodeOptions, IntoExpr, FillNullOptions } from "../types"
 import type { GroupMap, LimitOptions, SortOptions, PivotOptions, JoinOptions, UnpivotOptions, TransposeOptions } from "./types"
 import { DataTypeRegistry } from "../datatypes"
 import { isArrayOrTypedArray, toValidArray, toValidStringArray, isObj, isArrayOfType, clamp, isTypedArray } from "../utils"
@@ -111,6 +111,11 @@ export class DataFrame<T extends RowRecord = any> {
         return DataFrame._createDirect<Omit<T, K>>(newColumns, outSchema, this._height);
     }
 
+    drop_nulls(subset?: string | string[]): DataFrame<T> {
+        if (this._height === 0) return this;
+        return this.filter(subset ? new ColumnExpr(subset).is_not_null() : all().is_not_null());
+    }
+
     get dtypes(): RegisteredDataType[] {
         const keys = Object.keys(this._columns);
         const len = keys.length;
@@ -152,6 +157,11 @@ export class DataFrame<T extends RowRecord = any> {
         return this.select(...selectList);
     }
 
+    fill_null(options: FillNullOptions = {}): DataFrame<T> {
+        if (this._height === 0) return this;
+        return this.with_columns(all().fill_null(options));
+    }
+
     filter(...exprs: (IExpr | ((row: T) => any))[]): DataFrame<T> {
         if (this._height === 0) return DataFrame._createDirect({}, this._schema, 0);
 
@@ -162,14 +172,21 @@ export class DataFrame<T extends RowRecord = any> {
         const evaluatedExprs: ColumnData[] = [];
         const funcPredicates: ((row: T) => any)[] = [];
 
+        const exprSelectors: IExpr[] = [];
         const numExprs = exprs.length;
         for (let i = 0; i < numExprs; i++) {
             const expr = exprs[i];
             if (typeof expr === "function") {
                 funcPredicates.push(expr);
             } else {
-                evaluatedExprs.push(expr.evaluate(this._columns, height));
+                exprSelectors.push(expr);
             }
+        }
+
+        const expandedExprs = resolveColumnSelectors(exprSelectors, keys);
+        const numExpanded = expandedExprs.length;
+        for (let i = 0; i < numExpanded; i++) {
+            evaluatedExprs.push(expandedExprs[i].evaluate(this._columns, height));
         }
 
         const matchingIndices: number[] = [];
@@ -857,9 +874,6 @@ export class DataFrame<T extends RowRecord = any> {
         }
 
         const expr = ColumnExpr.toColExpr(nameOrExpr as any);
-        if (expr.colName) {
-            assertColumnExists(expr.colName, this._columns, "Column");
-        }
         const colData = expr.evaluate(this._columns, this._height);
         return Array.isArray(colData) ? colData : Array.from(colData);
     }

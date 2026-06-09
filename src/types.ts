@@ -77,3 +77,11 @@ export type FlattenUnion<T> = {
     [K in (T extends any ? keyof T : never)]?: T extends any ? (K extends keyof T ? T[K] : never) : never;
 };
 
+export type FillNullStrategy = "forward" | "backward" | "min" | "max" | "mean" | "zero" | "one";
+
+export interface FillNullOptions {
+    value?: any;
+    strategy?: FillNullStrategy;
+    limit?: number;
+}
+

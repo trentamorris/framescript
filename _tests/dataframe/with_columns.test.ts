@@ -44,5 +44,25 @@ if (collectedExpr[0].agePlusFive !== 35 || collectedExpr[1].agePlusFive !== 30) 
     throw new Error("Values mismatch from expression input");
 }
 
+// 3. Multi-column modification via array ColumnExpr
+const dfMultiInput = new DataFrame([
+    { name: "Alice", status: "active", age: 30 },
+    { name: "Bob", status: "inactive", age: 25 }
+]);
+
+const dfMultiOutput = dfMultiInput.with_columns(
+    $df.col(["name", "status"]).str.upper()
+);
+
+const collectedMulti = dfMultiOutput.to_dicts() as any[];
+if (
+    collectedMulti[0].name !== "ALICE" ||
+    collectedMulti[0].status !== "ACTIVE" ||
+    collectedMulti[1].name !== "BOB" ||
+    collectedMulti[1].status !== "INACTIVE"
+) {
+    throw new Error("Multi-column modification via array ColumnExpr failed");
+}
+
 console.log("✓ with_columns tests passed!");
 

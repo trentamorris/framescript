@@ -34,9 +34,9 @@ try {
 
     const projected = df.select([
         // 1. fill_null (scalar and expression)
-        $df.col("val").fill_null(99).alias("val_filled_scalar"),
-        $df.col("val").fill_null($df.col("other_val")).alias("val_filled_expr"),
-        $df.col("null_val").fill_null("fallback").alias("null_filled"),
+        $df.col("val").fill_null({ value: 99 }).alias("val_filled_scalar"),
+        $df.col("val").fill_null({ value: $df.col("other_val") }).alias("val_filled_expr"),
+        $df.col("null_val").fill_null({ value: "fallback" }).alias("null_filled"),
 
         // 2. cast
         $df.col("id").cast($df.DataType.Utf8).alias("id_cast_str"),

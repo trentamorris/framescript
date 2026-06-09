@@ -1,6 +1,7 @@
 import type { IExpr, OpFn, AggFn, ColumnData, ColumnDict, RegisteredDataType } from "../types"
 import { isArrayOrTypedArray } from "../utils"
 import { ALL_COLUMNS_MARKER } from "./constants"
+import { ColumnNotFoundError } from "../exceptions"
 export const kleeneUnary = (fn: (v: any) => any) => {
     return (vArray: ColumnData) => {
         const height = vArray.length;
@@ -93,12 +94,18 @@ export class ExprBase implements IExpr {
         }) as this;
     }
 
-    evaluate(columns: ColumnDict, height: number): ColumnData {
+    private _getInitialValue(columns: ColumnDict, height: number): ColumnData {
         const name = (this as any).colName;
-        let value = name && name !== ALL_COLUMNS_MARKER
+        if (name && name !== ALL_COLUMNS_MARKER && !name.startsWith("*") && !(name in columns)) {
+            throw new ColumnNotFoundError(name);
+        }
+        return name && name !== ALL_COLUMNS_MARKER
             ? (columns[name] || new Array(height).fill(null))
             : new Array(height).fill(null);
+    }
 
+    evaluate(columns: ColumnDict, height: number): ColumnData {
+        let value = this._getInitialValue(columns, height);
         const ops = this.ops;
         const len = ops.length;
         for (let i = 0; i < len; i++) {
@@ -108,10 +115,7 @@ export class ExprBase implements IExpr {
     }
 
     private _evaluatePre(opsIndex: number | undefined, columns: ColumnDict, height: number): ColumnData {
-        const name = (this as any).colName;
-        let value = name && name !== ALL_COLUMNS_MARKER
-            ? (columns[name] || new Array(height).fill(null))
-            : new Array(height).fill(null);
+        let value = this._getInitialValue(columns, height);
         const ops = this.ops;
         const idx = opsIndex !== undefined ? opsIndex : ops.length;
         for (let i = 0; i < idx; i++) {

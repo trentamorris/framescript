@@ -24,10 +24,12 @@ import "./test_schema";
 import "./iterators.test";
 import "./item.test";
 import "./transpose.test";
+import "./drop_nulls.test";
+import "./fill_null.test";
 
 
 console.log("=========================================");
-console.log("🎉 ALL 22 DATAFRAME TESTS PASSED SUCCESSFULLY!");
+console.log("🎉 ALL 24 DATAFRAME TESTS PASSED SUCCESSFULLY!");
 console.log("=========================================");
 
 

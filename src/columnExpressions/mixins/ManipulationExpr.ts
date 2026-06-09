@@ -1,29 +1,70 @@
 import type { ExprConstructor } from "../types"
 import { derive } from "../ExprBase"
-import { isArrayOrTypedArray } from "../../utils"
+import { isArrayOrTypedArray, getListStats, fillSequence } from "../../utils"
+import type { FillNullOptions } from "../../types"
 
 export const ManipulationExpr = <TBase extends ExprConstructor>(Base: TBase) => {
     return class extends Base {
-        fill_null(value: any): this {
+        fill_null({
+            value = undefined,
+            strategy = undefined,
+            limit = undefined
+        }: FillNullOptions = {}): this {
             return derive(this, (vArray, columns) => {
                 const height = vArray.length;
-                const resolved = this._resolve(value, columns, height);
-                const result = new Array(height);
-                if (isArrayOrTypedArray(resolved)) {
-                    for (let i = 0; i < height; i++) {
-                        const v = vArray[i];
-                        result[i] = v == null ? resolved[i] : v;
+                const result = Array.from(vArray);
+
+                if (strategy !== undefined) {
+                    if (strategy === "zero" || strategy === "one" || strategy === "min" || strategy === "max" || strategy === "mean") {
+                        let fillVal: any;
+                        if (strategy === "zero") {
+                            fillVal = 0;
+                        } else if (strategy === "one") {
+                            fillVal = 1;
+                        } else {
+                            const stats = getListStats(vArray);
+                            fillVal = stats[strategy];
+                        }
+                        fillSequence(result, fillVal, {
+                            mode: "constant",
+                            condition: (v) => v == null
+                        });
+                    } else if (strategy === "forward" || strategy === "backward") {
+                        const isForward = strategy === "forward";
+                        let lastVal: any = null;
+                        let consecCount = 0;
+
+                        fillSequence(result, null, {
+                            mode: "independent",
+                            reverse: !isForward,
+                            step: ({ originalValue }) => {
+                                if (originalValue != null) {
+                                    lastVal = originalValue;
+                                    consecCount = 0;
+                                    return originalValue;
+                                }
+                                if (lastVal !== null && (limit === undefined || consecCount < limit)) {
+                                    consecCount++;
+                                    return lastVal;
+                                }
+                                return null;
+                            }
+                        });
+                    } else {
+                        throw new Error(`Unsupported fill_null strategy: "${strategy}"`);
                     }
                 } else {
-                    for (let i = 0; i < height; i++) {
-                        const v = vArray[i];
-                        result[i] = v == null ? resolved : v;
-                    }
+                    const resolved = this._resolve(value, columns, height);
+                    const isArr = isArrayOrTypedArray(resolved);
+
+                    fillSequence(result, null, {
+                        mode: "independent",
+                        step: ({ index, originalValue }) => originalValue == null ? (isArr ? resolved[index] : resolved) : originalValue
+                    });
                 }
                 return result;
             }) as this;
         }
-
 
         reverse(): this {
             return derive(this, (vArray) => {
